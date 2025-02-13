@@ -1,10 +1,16 @@
 FROM scanfleet-base:latest
 
-# Set environment variables
+# Set Prefect API URL explicitly
 ENV PREFECT_API_URL="http://192.168.1.188:4200/api"
 
 # Set working directory
 WORKDIR /home/prefect
 
-# Default command: Start Prefect Worker with assigned work pool
-CMD ["prefect", "worker", "start", "-p", "${WORK_POOL}"]
+# Copy worker entrypoint script into the container
+COPY worker-entrypoint.sh /worker-entrypoint.sh
+
+# Ensure the entrypoint script is executable
+RUN chmod +x /worker-entrypoint.sh
+
+# Set entrypoint
+ENTRYPOINT ["/worker-entrypoint.sh"]
