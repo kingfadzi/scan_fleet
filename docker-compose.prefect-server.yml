@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   prefect-server:
     image: scanfleet-prefect-server
