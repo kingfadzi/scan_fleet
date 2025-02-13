@@ -1,4 +1,10 @@
 FROM scanfleet-base:latest
 
-# Default command (Worker starts with dynamic work pool assignment)
+# Set environment variables
+ENV PREFECT_API_URL="http://192.168.1.188:4200/api"
+
+# Set working directory
+WORKDIR /home/prefect
+
+# Default command: Start Prefect Worker with assigned work pool
 CMD ["prefect", "worker", "start", "-p", "${WORK_POOL}"]

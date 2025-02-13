@@ -1,7 +1,6 @@
 FROM scanfleet-base:latest
 
 # Set Prefect API URL explicitly
-ENV PREFECT_API_URL="http://192.168.1.188:4200/api"
 ENV PREFECT_DB_PATH="/home/prefect/.prefect/orion.db"
 
 # Ensure SQLite database directory exists and is writable
