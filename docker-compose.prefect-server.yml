@@ -8,8 +8,6 @@ services:
       args:
         GLOBAL_INDEX: "${GLOBAL_INDEX}"
         GLOBAL_INDEX_URL: "${GLOBAL_INDEX_URL}"
-    env_file:
-      - ${ENV_FILE}  # Load environment variables dynamically
     environment:
       - PREFECT_API_URL=${PREFECT_API_URL}
       - GLOBAL_INDEX=${GLOBAL_INDEX}

@@ -45,10 +45,6 @@ if [[ "$COMMAND" == "start" || "$COMMAND" == "restart" ]]; then
         echo "ERROR: Environment file $ENV_FILE not found!"
         exit 1
     fi
-
-    # Load environment variables
-    echo "Loading environment variables from $ENV_FILE"
-    export $(grep -v '^#' "$ENV_FILE" | xargs)
 fi
 
 # Ensure the correct network exists for workers
@@ -67,8 +63,8 @@ fi
 # Function to start Prefect Server
 start_server() {
     echo "Building and starting Prefect Server..."
-    docker compose -f docker-compose.prefect-server.yml build --no-cache
-    docker compose -f docker-compose.prefect-server.yml up -d
+    docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml build --no-cache
+    docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml up -d
     echo "Prefect Server started successfully!"
 }
 
@@ -76,8 +72,8 @@ start_server() {
 start_worker() {
     echo "Building and starting Prefect Worker in pool: $WORK_POOL (Instance: ${INSTANCE})"
     export WORK_POOL="$WORK_POOL"
-    docker compose -f docker-compose.prefect-worker.yml build --no-cache
-    docker compose -f docker-compose.prefect-worker.yml up -d
+    docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml build --no-cache
+    docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml up -d
     echo "Prefect Worker started successfully in pool: $WORK_POOL (Instance: ${INSTANCE})"
 }
 

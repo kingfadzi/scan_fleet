@@ -8,8 +8,6 @@ services:
       args:
         GLOBAL_INDEX: "${GLOBAL_INDEX}"
         GLOBAL_INDEX_URL: "${GLOBAL_INDEX_URL}"
-    env_file:
-      - ${ENV_FILE}  # Load shared environment variables dynamically
     environment:
       - PREFECT_API_URL=${PREFECT_API_URL}
       - WORK_POOL=${WORK_POOL}  # Must be provided at runtime
@@ -18,8 +16,8 @@ services:
       - GLOBAL_INDEX_URL=${GLOBAL_INDEX_URL}
     restart: always
     networks:
-      - scan_fleet_scannet  # Ensure it matches the actual network name
+      - scan_fleet_scannet  # Worker must use the same network as Prefect Server
 
 networks:
   scan_fleet_scannet:
-    external: true  # Worker must use the same network as Prefect Server
+    external: true
