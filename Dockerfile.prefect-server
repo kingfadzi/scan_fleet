@@ -1,0 +1,10 @@
+FROM scanfleet-base:latest
+
+# Expose Prefect UI port
+EXPOSE 4200
+
+# Set working directory
+WORKDIR /home/prefect
+
+# Default command to start Prefect Server
+CMD ["prefect", "server", "start", "--host", "0.0.0.0"]

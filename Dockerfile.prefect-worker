@@ -1,0 +1,4 @@
+FROM scanfleet-base:latest
+
+# Default command (Worker starts with dynamic work pool assignment)
+CMD ["prefect", "worker", "start", "-p", "${WORK_POOL}"]

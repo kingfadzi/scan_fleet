@@ -1,13 +1,28 @@
+version: "3.8"
+
 services:
   prefect-server:
-    image: prefecthq/prefect:latest
+    image: scanfleet-prefect-server
     container_name: prefect-server
-    command: ["prefect", "server", "start"]
+    build:
+      context: .
+      dockerfile: Dockerfile.base
+      args:
+        GLOBAL_INDEX: "${GLOBAL_INDEX}"
+        GLOBAL_INDEX_URL: "${GLOBAL_INDEX_URL}"
+    environment:
+      - PREFECT_API_URL=http://localhost:4200
+      - PREFECT_HOME=/opt/prefect
     ports:
-      - "4200:4200"  # Prefect UI/API
+      - "4200:4200"  # Prefect UI
+    volumes:
+      - prefect-data:/opt/prefect
+    restart: always
     networks:
       - scannet
-    restart: always
+
+volumes:
+  prefect-data:
 
 networks:
   scannet:
