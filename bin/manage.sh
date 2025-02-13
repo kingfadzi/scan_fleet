@@ -5,6 +5,7 @@ set -e  # Exit on error
 # Function to show usage
 usage() {
     echo "Usage:"
+    echo "  $0 build"
     echo "  $0 start server <env>"
     echo "  $0 start worker <pool-name> <env> <instance>"
     echo "  $0 stop server"
@@ -14,12 +15,11 @@ usage() {
     exit 1
 }
 
-# Ensure at least two arguments are passed
-if [ $# -lt 2 ]; then
+# Ensure at least one argument is passed
+if [ $# -lt 1 ]; then
     usage
 fi
 
-# Parse CLI arguments
 COMMAND=$1
 SERVICE=$2
 WORK_POOL=""
@@ -60,19 +60,30 @@ if [[ "$SERVICE" == "worker" ]]; then
     CONTAINER_NAME="prefect-worker-${WORK_POOL}-${INSTANCE}"
 fi
 
+# Function to build all images
+build_all() {
+    echo "Building all images..."
+    docker build --no-cache -t scanfleet-base -f Dockerfile.base .
+    docker build --no-cache -t scanfleet-prefect-server -f Dockerfile.prefect-server .
+    docker build --no-cache -t scanfleet-prefect-worker -f Dockerfile.prefect-worker .
+    echo "All images built successfully!"
+}
+
 # Function to start Prefect Server
 start_server() {
-    echo "Building and starting Prefect Server..."
-    docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml build --no-cache
+    echo "Building Prefect Server image..."
+    docker build --no-cache -t scanfleet-prefect-server -f Dockerfile.prefect-server .
+    echo "Starting Prefect Server..."
     docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml up -d
     echo "Prefect Server started successfully!"
 }
 
 # Function to start Prefect Worker
 start_worker() {
-    echo "Building and starting Prefect Worker in pool: $WORK_POOL (Instance: ${INSTANCE})"
+    echo "Building Prefect Worker image..."
+    docker build --no-cache -t scanfleet-prefect-worker -f Dockerfile.prefect-worker .
+    echo "Starting Prefect Worker in pool: $WORK_POOL (Instance: ${INSTANCE})"
     export WORK_POOL="$WORK_POOL"
-    docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml build --no-cache
     docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml up -d
     echo "Prefect Worker started successfully in pool: $WORK_POOL (Instance: ${INSTANCE})"
 }
@@ -103,6 +114,9 @@ restart_service() {
 
 # Execute based on the command
 case "$COMMAND" in
+    build)
+        build_all
+        ;;
     start)
         if [ "$SERVICE" == "server" ]; then
             start_server
