@@ -11,8 +11,8 @@ WORKDIR /home/prefect
 # Expose Prefect UI port
 EXPOSE 4200
 
-# Copy server entrypoint script into the container with proper ownership
-COPY --chown=prefect:prefect server-entrypoint.sh /usr/local/bin/server-entrypoint.sh
+# Copy server entrypoint script with correct ownership and permissions
+COPY --chown=prefect:prefect --chmod=755 server-entrypoint.sh /usr/local/bin/server-entrypoint.sh
 
 # Set entrypoint
 ENTRYPOINT ["/usr/local/bin/server-entrypoint.sh"]
