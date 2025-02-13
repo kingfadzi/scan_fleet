@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   prefect-worker:
     image: scanfleet-prefect-worker
@@ -10,6 +8,8 @@ services:
       args:
         GLOBAL_INDEX: "${GLOBAL_INDEX}"
         GLOBAL_INDEX_URL: "${GLOBAL_INDEX_URL}"
+    env_file:
+      - .env  # Load variables from .env file
     environment:
       - PREFECT_API_URL=http://192.168.1.188:4200/api
       - PREFECT_HOME=/home/prefect
@@ -18,8 +18,8 @@ services:
       - GLOBAL_INDEX_URL=${GLOBAL_INDEX_URL}
     restart: always
     networks:
-      - scan_fleet_scannet  # Match the actual network name from `docker network ls`
+      - scan_fleet_scannet  # Ensure it matches the actual network name
 
 networks:
   scan_fleet_scannet:
-    external: true  # Use the existing network
+    external: true  # Worker must use the same network as Prefect Server
