@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   prefect-server:
     image: scanfleet-prefect-server
@@ -8,9 +10,10 @@ services:
       args:
         GLOBAL_INDEX: "${GLOBAL_INDEX}"
         GLOBAL_INDEX_URL: "${GLOBAL_INDEX_URL}"
+    env_file:
+      - ${ENV_FILE}  # Load environment variables dynamically
     environment:
-      - PREFECT_API_URL=http://192.168.1.188:4200/api
-      - PREFECT_HOME=/home/prefect
+      - PREFECT_API_URL=${PREFECT_API_URL}
       - GLOBAL_INDEX=${GLOBAL_INDEX}
       - GLOBAL_INDEX_URL=${GLOBAL_INDEX_URL}
     ports:

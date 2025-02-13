@@ -6,11 +6,11 @@ set -e  # Exit on error
 usage() {
     echo "Usage:"
     echo "  $0 start server <env>"
-    echo "  $0 start worker <pool-name> <env> [instance]"
+    echo "  $0 start worker <pool-name> <env> <instance>"
     echo "  $0 stop server"
-    echo "  $0 stop worker <pool-name> [instance]"
+    echo "  $0 stop worker <pool-name> <instance>"
     echo "  $0 restart server <env>"
-    echo "  $0 restart worker <pool-name> <env> [instance]"
+    echo "  $0 restart worker <pool-name> <env> <instance>"
     exit 1
 }
 
@@ -26,15 +26,15 @@ WORK_POOL=""
 INSTANCE=""
 ENV_FILE=""
 
-# If a worker is being started/restarted, require a pool name
+# If a worker is being started/restarted, require a pool name and instance
 if [[ "$SERVICE" == "worker" ]]; then
-    if [ $# -lt 3 ]; then
-        echo "ERROR: Missing work pool name."
+    if [ $# -lt 4 ]; then
+        echo "ERROR: Missing work pool name or instance ID."
         usage
     fi
     WORK_POOL=$3
     ENV_FILE=".env-$4"
-    INSTANCE=$5  # Optional worker instance ID
+    INSTANCE=$5  # Worker instance identifier
 else
     ENV_FILE=".env-$3"
 fi
@@ -57,11 +57,9 @@ if [[ "$SERVICE" == "worker" ]]; then
     fi
 fi
 
-# Generate a unique worker container name if instance ID is provided
-if [[ "$SERVICE" == "worker" ]] && [[ -n "$INSTANCE" ]]; then
+# Generate a unique worker container name
+if [[ "$SERVICE" == "worker" ]]; then
     CONTAINER_NAME="prefect-worker-${WORK_POOL}-${INSTANCE}"
-else
-    CONTAINER_NAME="prefect-worker-${WORK_POOL}"
 fi
 
 # Function to start Prefect Server
@@ -74,11 +72,11 @@ start_server() {
 
 # Function to start Prefect Worker
 start_worker() {
-    echo "Building and starting Prefect Worker in pool: $WORK_POOL (Instance: ${INSTANCE:-default})"
+    echo "Building and starting Prefect Worker in pool: $WORK_POOL (Instance: ${INSTANCE})"
     export WORK_POOL="$WORK_POOL"
     docker compose -f docker-compose.prefect-worker.yml build --no-cache
-    docker compose -f docker-compose.prefect-worker.yml up -d --scale "$CONTAINER_NAME"=1
-    echo "Prefect Worker started successfully in pool: $WORK_POOL (Instance: ${INSTANCE:-default})"
+    docker compose -f docker-compose.prefect-worker.yml up -d
+    echo "Prefect Worker started successfully in pool: $WORK_POOL (Instance: ${INSTANCE})"
 }
 
 # Function to stop services

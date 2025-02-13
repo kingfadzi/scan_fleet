@@ -1,7 +1,9 @@
+version: "3.8"
+
 services:
   prefect-worker:
     image: scanfleet-prefect-worker
-    container_name: prefect-worker
+    container_name: prefect-worker-${WORK_POOL}-${INSTANCE}
     build:
       context: .
       dockerfile: Dockerfile.prefect-worker
@@ -9,11 +11,11 @@ services:
         GLOBAL_INDEX: "${GLOBAL_INDEX}"
         GLOBAL_INDEX_URL: "${GLOBAL_INDEX_URL}"
     env_file:
-      - .env  # Load variables from .env file
+      - ${ENV_FILE}  # Load shared environment variables dynamically
     environment:
-      - PREFECT_API_URL=http://192.168.1.188:4200/api
-      - PREFECT_HOME=/home/prefect
-      - WORK_POOL=${WORK_POOL}
+      - PREFECT_API_URL=${PREFECT_API_URL}
+      - WORK_POOL=${WORK_POOL}  # Must be provided at runtime
+      - INSTANCE=${INSTANCE}  # Must be provided at runtime
       - GLOBAL_INDEX=${GLOBAL_INDEX}
       - GLOBAL_INDEX_URL=${GLOBAL_INDEX_URL}
     restart: always
