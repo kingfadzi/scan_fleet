@@ -26,10 +26,11 @@ WORK_POOL=""
 INSTANCE=""
 ENV_FILE=""
 
-# Load environment file only for start/restart
+# For start/restart commands, load the env file
 if [[ "$COMMAND" == "start" || "$COMMAND" == "restart" ]]; then
     if [[ "$SERVICE" == "worker" ]]; then
-        if [ $# -lt 4 ]; then
+        # For worker, we require: start worker <pool-name> <env> <instance>
+        if [ $# -lt 5 ]; then
             echo "ERROR: Missing work pool name or instance ID."
             usage
         fi
@@ -37,6 +38,7 @@ if [[ "$COMMAND" == "start" || "$COMMAND" == "restart" ]]; then
         ENV_FILE=".env-$4"
         INSTANCE=$5  # Worker instance identifier
     else
+        # For server, require: start server <env>
         ENV_FILE=".env-$3"
     fi
 
@@ -47,15 +49,15 @@ if [[ "$COMMAND" == "start" || "$COMMAND" == "restart" ]]; then
     fi
 fi
 
-# Ensure the correct network exists for workers
-if [[ "$SERVICE" == "worker" && ("$COMMAND" == "start" || "$COMMAND" == "restart") ]]; then
+# For worker commands, ensure the network exists
+if [[ "$SERVICE" == "worker" && ( "$COMMAND" == "start" || "$COMMAND" == "restart" ) ]]; then
     if ! docker network ls | grep -q "scan_fleet_scannet"; then
         echo "Creating Docker network: scan_fleet_scannet"
         docker network create scan_fleet_scannet
     fi
 fi
 
-# Generate a unique worker container name
+# Generate a unique worker container name (for worker commands)
 if [[ "$SERVICE" == "worker" ]]; then
     CONTAINER_NAME="prefect-worker-${WORK_POOL}-${INSTANCE}"
 fi
