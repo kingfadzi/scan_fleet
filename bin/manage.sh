@@ -26,31 +26,33 @@ WORK_POOL=""
 INSTANCE=""
 ENV_FILE=""
 
-# If a worker is being started/restarted, require a pool name and instance
-if [[ "$SERVICE" == "worker" ]]; then
-    if [ $# -lt 4 ]; then
-        echo "ERROR: Missing work pool name or instance ID."
-        usage
+# Load environment file only for start/restart
+if [[ "$COMMAND" == "start" || "$COMMAND" == "restart" ]]; then
+    if [[ "$SERVICE" == "worker" ]]; then
+        if [ $# -lt 4 ]; then
+            echo "ERROR: Missing work pool name or instance ID."
+            usage
+        fi
+        WORK_POOL=$3
+        ENV_FILE=".env-$4"
+        INSTANCE=$5  # Worker instance identifier
+    else
+        ENV_FILE=".env-$3"
     fi
-    WORK_POOL=$3
-    ENV_FILE=".env-$4"
-    INSTANCE=$5  # Worker instance identifier
-else
-    ENV_FILE=".env-$3"
-fi
 
-# Validate environment file
-if [ -z "$ENV_FILE" ] || [ ! -f "$ENV_FILE" ]; then
-    echo "ERROR: Environment file $ENV_FILE not found!"
-    exit 1
-fi
+    # Validate environment file
+    if [ -z "$ENV_FILE" ] || [ ! -f "$ENV_FILE" ]; then
+        echo "ERROR: Environment file $ENV_FILE not found!"
+        exit 1
+    fi
 
-# Load environment variables
-echo "Loading environment variables from $ENV_FILE"
-export $(grep -v '^#' "$ENV_FILE" | xargs)
+    # Load environment variables
+    echo "Loading environment variables from $ENV_FILE"
+    export $(grep -v '^#' "$ENV_FILE" | xargs)
+fi
 
 # Ensure the correct network exists for workers
-if [[ "$SERVICE" == "worker" ]]; then
+if [[ "$SERVICE" == "worker" && ("$COMMAND" == "start" || "$COMMAND" == "restart") ]]; then
     if ! docker network ls | grep -q "scan_fleet_scannet"; then
         echo "Creating Docker network: scan_fleet_scannet"
         docker network create scan_fleet_scannet
