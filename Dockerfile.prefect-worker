@@ -6,11 +6,11 @@ ENV PREFECT_API_URL="http://192.168.1.188:4200/api"
 # Set working directory
 WORKDIR /home/prefect
 
-# Copy worker entrypoint script into the container
-COPY worker-entrypoint.sh /worker-entrypoint.sh
+# Copy worker entrypoint script with correct ownership
+COPY --chown=prefect:prefect worker-entrypoint.sh /usr/local/bin/worker-entrypoint.sh
 
 # Ensure the entrypoint script is executable
-RUN chmod +x /worker-entrypoint.sh
+RUN chmod +x /usr/local/bin/worker-entrypoint.sh
 
 # Set entrypoint
-ENTRYPOINT ["/worker-entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/worker-entrypoint.sh"]
