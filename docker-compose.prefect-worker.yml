@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   prefect-worker:
     image: scanfleet-prefect-worker
@@ -9,12 +11,15 @@ services:
         GLOBAL_INDEX: "${GLOBAL_INDEX}"
         GLOBAL_INDEX_URL: "${GLOBAL_INDEX_URL}"
     environment:
-      - PREFECT_API_URL=http://192.168.1.188:4200/api
+      - PREFECT_API_URL=http://192.168.1.188:4200/api  # Always connect to server via IP
       - PREFECT_HOME=/home/prefect
-      #- WORK_POOL=${WORK_POOL}
-      - WORK_POOL=repo-analysis-pool
+      - WORK_POOL=${WORK_POOL}
       - GLOBAL_INDEX=${GLOBAL_INDEX}
       - GLOBAL_INDEX_URL=${GLOBAL_INDEX_URL}
     restart: always
     networks:
       - scannet
+
+networks:
+  scannet:
+    external: true  # Ensures workers use the same network if deployed on one machine
