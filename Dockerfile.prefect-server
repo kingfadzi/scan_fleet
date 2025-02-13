@@ -1,5 +1,8 @@
 FROM scanfleet-base:latest
 
+# Set Prefect API URL explicitly
+ENV PREFECT_API_URL="http://0.0.0.0:4200/api"
+
 # Expose Prefect UI port
 EXPOSE 4200
 
