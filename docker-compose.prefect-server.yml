@@ -1,0 +1,14 @@
+services:
+  prefect-server:
+    image: prefecthq/prefect:latest
+    container_name: prefect-server
+    command: ["prefect", "server", "start"]
+    ports:
+      - "4200:4200"  # Prefect UI/API
+    networks:
+      - scannet
+    restart: always
+
+networks:
+  scannet:
+    driver: bridge
