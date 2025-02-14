@@ -32,13 +32,8 @@ done
 
 echo "Database is accessible. Checking migrations..."
 
-# Run migrations only if not already applied
-if ! prefect server database upgrade --check; then
-    echo "Applying database migrations..."
-    prefect server database upgrade
-else
-    echo "Database is already up to date."
-fi
+# Apply database migrations (without the unsupported --check flag)
+prefect server database upgrade
 
 echo "Starting Prefect Server..."
 exec prefect server start --host 0.0.0.0
