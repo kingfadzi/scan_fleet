@@ -10,10 +10,11 @@ services:
         GLOBAL_INDEX_URL: "${GLOBAL_INDEX_URL}"
     environment:
       - PREFECT_API_URL=${PREFECT_API_URL}
+      - PREFECT_DATABASE_CONNECTION_URL=${PREFECT_DATABASE_CONNECTION_URL}
       - GLOBAL_INDEX=${GLOBAL_INDEX}
       - GLOBAL_INDEX_URL=${GLOBAL_INDEX_URL}
     ports:
-      - "4200:4200"  # Prefect UI
+      - "4200:4200"
     volumes:
       - prefect-data:/home/prefect
     restart: always
