@@ -73,6 +73,12 @@ if [[ "$SERVICE" == "worker" && ( "$COMMAND" == "start" || "$COMMAND" == "restar
     fi
 fi
 
+# For worker commands, define a unique project name based on WORK_POOL and INSTANCE.
+if [[ "$SERVICE" == "worker" ]]; then
+    PROJECT_NAME="prefect-worker-${WORK_POOL}-${INSTANCE}"
+    echo "DEBUG: Generated PROJECT_NAME: '$PROJECT_NAME'"
+fi
+
 # Function to build all images
 build_all() {
     echo "Building all images..."
@@ -98,23 +104,17 @@ start_worker() {
     echo "DEBUG: Starting Prefect Worker in pool: '$WORK_POOL' (Instance: '$INSTANCE')"
     export WORK_POOL="$WORK_POOL"
     export INSTANCE="$INSTANCE"
-    docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml up -d
+    echo "DEBUG: Using project name: '$PROJECT_NAME'"
+    docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml up -d
     echo "Prefect Worker started successfully in pool: '$WORK_POOL' (Instance: '$INSTANCE')"
 }
 
 # Function to stop services
 stop_service() {
     if [[ "$SERVICE" == "worker" ]]; then
-        echo "DEBUG: Attempting to stop worker container for pool '$WORK_POOL', instance '$INSTANCE'"
-        # Find the container ID by filtering for our labels
-        container_id=$(docker ps --filter "label=worker_pool=$WORK_POOL" --filter "label=worker_instance=$INSTANCE" -q)
-        if [ -z "$container_id" ]; then
-            echo "No running worker container found for pool '$WORK_POOL', instance '$INSTANCE'"
-        else
-            echo "DEBUG: Found container ID: $container_id"
-            docker rm -f "$container_id"
-            echo "Worker container for pool '$WORK_POOL', instance '$INSTANCE' stopped."
-        fi
+        echo "DEBUG: Stopping worker container for pool '$WORK_POOL', instance '$INSTANCE'"
+        echo "DEBUG: Using project name: '$PROJECT_NAME'"
+        docker compose --project-name "$PROJECT_NAME" -f docker-compose.prefect-worker.yml down
     else
         echo "Stopping Prefect Server..."
         docker compose -f docker-compose.prefect-server.yml down
