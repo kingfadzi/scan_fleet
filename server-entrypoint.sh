@@ -22,7 +22,6 @@ fi
 echo "DEBUG: Extracted DB_HOST=${DB_HOST}, DB_PORT=${DB_PORT}"
 
 echo "Checking database connection to $DB_HOST on port $DB_PORT..."
-
 # Wait until PostgreSQL is ready
 until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U postgres; do
     echo "$DB_HOST:$DB_PORT - no response"
@@ -30,10 +29,8 @@ until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U postgres; do
     sleep 5
 done
 
-echo "Database is accessible. Checking migrations..."
-
-# Apply database migrations (remove unsupported --check flag)
-prefect server database upgrade
+echo "Database is accessible. Applying database migrations..."
+prefect server database upgrade -y
 
 echo "Starting Prefect Server..."
 exec prefect server start --host 0.0.0.0
