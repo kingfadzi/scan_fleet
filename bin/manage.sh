@@ -26,33 +26,52 @@ WORK_POOL=""
 INSTANCE=""
 ENV_FILE=""
 
-# For start/restart commands, load the env file
+# Debug: show initial CLI arguments
+echo "DEBUG: COMMAND='$COMMAND', SERVICE='$SERVICE', All Args: $@"
+
+# For start/restart commands, load the env file and variables
 if [[ "$COMMAND" == "start" || "$COMMAND" == "restart" ]]; then
     if [[ "$SERVICE" == "worker" ]]; then
-        # For worker, we require: start worker <pool-name> <env> <instance>
         if [ $# -lt 5 ]; then
             echo "ERROR: Missing work pool name or instance ID."
             usage
         fi
         WORK_POOL=$3
         ENV_FILE=".env-$4"
-        INSTANCE=$5  # Worker instance identifier
+        INSTANCE=$5
+        echo "DEBUG: [Start/Restart Worker] WORK_POOL='$WORK_POOL', INSTANCE='$INSTANCE', ENV_FILE='$ENV_FILE'"
     else
         # For server, require: start server <env>
+        if [ $# -lt 3 ]; then
+            echo "ERROR: Missing environment argument."
+            usage
+        fi
         ENV_FILE=".env-$3"
+        echo "DEBUG: [Start/Restart Server] ENV_FILE='$ENV_FILE'"
     fi
 
-    # Validate environment file
+    # Validate environment file for start/restart commands
     if [ -z "$ENV_FILE" ] || [ ! -f "$ENV_FILE" ]; then
         echo "ERROR: Environment file $ENV_FILE not found!"
         exit 1
     fi
 fi
 
-# For worker commands, ensure the network exists
+# For stop worker command, assign pool and instance from arguments
+if [ "$COMMAND" == "stop" ] && [ "$SERVICE" == "worker" ]; then
+    if [ $# -lt 4 ]; then
+        echo "ERROR: Missing work pool name or instance ID for stopping worker."
+        usage
+    fi
+    WORK_POOL=$3
+    INSTANCE=$4
+    echo "DEBUG: [Stop Worker] WORK_POOL='$WORK_POOL', INSTANCE='$INSTANCE'"
+fi
+
+# For worker start/restart commands, ensure the Docker network exists
 if [[ "$SERVICE" == "worker" && ( "$COMMAND" == "start" || "$COMMAND" == "restart" ) ]]; then
     if ! docker network ls | grep -q "scan_fleet_scannet"; then
-        echo "Creating Docker network: scan_fleet_scannet"
+        echo "DEBUG: Creating Docker network: scan_fleet_scannet"
         docker network create scan_fleet_scannet
     fi
 fi
@@ -60,6 +79,7 @@ fi
 # Generate a unique worker container name (for worker commands)
 if [[ "$SERVICE" == "worker" ]]; then
     CONTAINER_NAME="prefect-worker-${WORK_POOL}-${INSTANCE}"
+    echo "DEBUG: Generated container name: '$CONTAINER_NAME'"
 fi
 
 # Function to build all images
@@ -84,17 +104,18 @@ start_server() {
 start_worker() {
     echo "Building Prefect Worker image..."
     docker build --no-cache -t scanfleet-prefect-worker -f Dockerfile.prefect-worker .
-    echo "Starting Prefect Worker in pool: $WORK_POOL (Instance: ${INSTANCE})"
+    echo "DEBUG: Starting Prefect Worker in pool: '$WORK_POOL' (Instance: '$INSTANCE')"
     export WORK_POOL="$WORK_POOL"
+    export INSTANCE="$INSTANCE"
     docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml up -d
-    echo "Prefect Worker started successfully in pool: $WORK_POOL (Instance: ${INSTANCE})"
+    echo "Prefect Worker started successfully in pool: '$WORK_POOL' (Instance: '$INSTANCE')"
 }
 
 # Function to stop services
 stop_service() {
     if [[ "$SERVICE" == "worker" ]]; then
-        echo "Stopping worker: $CONTAINER_NAME"
-        docker rm -f "$CONTAINER_NAME" || echo "Worker $CONTAINER_NAME not running."
+        echo "DEBUG: Attempting to stop worker container: '$CONTAINER_NAME'"
+        docker rm -f "$CONTAINER_NAME" || echo "Worker '$CONTAINER_NAME' not running."
     else
         echo "Stopping Prefect Server..."
         docker compose -f docker-compose.prefect-server.yml down
