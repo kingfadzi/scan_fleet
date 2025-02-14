@@ -26,7 +26,6 @@ WORK_POOL=""
 INSTANCE=""
 ENV_FILE=""
 
-# Debug: show initial CLI arguments
 echo "DEBUG: COMMAND='$COMMAND', SERVICE='$SERVICE', All Args: $@"
 
 # For start/restart commands, load the env file and variables
@@ -41,7 +40,6 @@ if [[ "$COMMAND" == "start" || "$COMMAND" == "restart" ]]; then
         INSTANCE=$5
         echo "DEBUG: [Start/Restart Worker] WORK_POOL='$WORK_POOL', INSTANCE='$INSTANCE', ENV_FILE='$ENV_FILE'"
     else
-        # For server, require: start server <env>
         if [ $# -lt 3 ]; then
             echo "ERROR: Missing environment argument."
             usage
@@ -50,7 +48,6 @@ if [[ "$COMMAND" == "start" || "$COMMAND" == "restart" ]]; then
         echo "DEBUG: [Start/Restart Server] ENV_FILE='$ENV_FILE'"
     fi
 
-    # Validate environment file for start/restart commands
     if [ -z "$ENV_FILE" ] || [ ! -f "$ENV_FILE" ]; then
         echo "ERROR: Environment file $ENV_FILE not found!"
         exit 1
@@ -74,12 +71,6 @@ if [[ "$SERVICE" == "worker" && ( "$COMMAND" == "start" || "$COMMAND" == "restar
         echo "DEBUG: Creating Docker network: scan_fleet_scannet"
         docker network create scan_fleet_scannet
     fi
-fi
-
-# Generate a unique worker container name (for worker commands)
-if [[ "$SERVICE" == "worker" ]]; then
-    CONTAINER_NAME="prefect-worker-${WORK_POOL}-${INSTANCE}"
-    echo "DEBUG: Generated container name: '$CONTAINER_NAME'"
 fi
 
 # Function to build all images
@@ -114,8 +105,16 @@ start_worker() {
 # Function to stop services
 stop_service() {
     if [[ "$SERVICE" == "worker" ]]; then
-        echo "DEBUG: Attempting to stop worker container: '$CONTAINER_NAME'"
-        docker rm -f "$CONTAINER_NAME" || echo "Worker '$CONTAINER_NAME' not running."
+        echo "DEBUG: Attempting to stop worker container for pool '$WORK_POOL', instance '$INSTANCE'"
+        # Find the container ID by filtering for our labels
+        container_id=$(docker ps --filter "label=worker_pool=$WORK_POOL" --filter "label=worker_instance=$INSTANCE" -q)
+        if [ -z "$container_id" ]; then
+            echo "No running worker container found for pool '$WORK_POOL', instance '$INSTANCE'"
+        else
+            echo "DEBUG: Found container ID: $container_id"
+            docker rm -f "$container_id"
+            echo "Worker container for pool '$WORK_POOL', instance '$INSTANCE' stopped."
+        fi
     else
         echo "Stopping Prefect Server..."
         docker compose -f docker-compose.prefect-server.yml down

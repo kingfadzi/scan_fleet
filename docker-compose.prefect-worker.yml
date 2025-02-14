@@ -1,7 +1,6 @@
 services:
   prefect-worker:
     image: scanfleet-prefect-worker
-    container_name: prefect-worker-${WORK_POOL}-${INSTANCE}
     build:
       context: .
       dockerfile: Dockerfile.prefect-worker
@@ -11,9 +10,12 @@ services:
     environment:
       - PREFECT_API_URL=${PREFECT_API_URL}
       - WORK_POOL=${WORK_POOL}  # Must be provided at runtime
-      - INSTANCE=${INSTANCE}  # Must be provided at runtime
+      - INSTANCE=${INSTANCE}    # Must be provided at runtime
       - GLOBAL_INDEX=${GLOBAL_INDEX}
       - GLOBAL_INDEX_URL=${GLOBAL_INDEX_URL}
+    labels:
+      - "worker_pool=${WORK_POOL}"
+      - "worker_instance=${INSTANCE}"
     restart: always
     networks:
       - scan_fleet_scannet  # Worker must use the same network as Prefect Server
