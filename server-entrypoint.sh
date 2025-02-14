@@ -2,19 +2,19 @@
 set -e  # Exit on error
 
 # Validate required environment variable
-if [ -z "$PREFECT_DATABASE_CONNECTION_URL" ]; then
-    echo "ERROR: PREFECT_DATABASE_CONNECTION_URL is not set. Exiting."
+if [ -z "$PREFECT_API_DATABASE_CONNECTION_URL" ]; then
+    echo "ERROR: PREFECT_API_DATABASE_CONNECTION_URL is not set. Exiting."
     exit 1
 fi
 
 # Parse the PostgreSQL host and port using a Bash regex.
 # Assumes the URL is in the format:
 #   postgresql+asyncpg://username:password@host:port/database
-if [[ "$PREFECT_DATABASE_CONNECTION_URL" =~ ^postgresql\+asyncpg://[^:]+:[^@]+@([^:]+):([0-9]+)/ ]]; then
+if [[ "$PREFECT_API_DATABASE_CONNECTION_URL" =~ ^postgresql\+asyncpg://[^:]+:[^@]+@([^:]+):([0-9]+)/ ]]; then
     DB_HOST="${BASH_REMATCH[1]}"
     DB_PORT="${BASH_REMATCH[2]}"
 else
-    echo "ERROR: Unable to parse PREFECT_DATABASE_CONNECTION_URL. Exiting."
+    echo "ERROR: Unable to parse PREFECT_API_DATABASE_CONNECTION_URL. Exiting."
     exit 1
 fi
 
@@ -32,7 +32,7 @@ done
 
 echo "Database is accessible. Checking migrations..."
 
-# Apply database migrations (without the unsupported --check flag)
+# Apply database migrations (remove unsupported --check flag)
 prefect server database upgrade
 
 echo "Starting Prefect Server..."
