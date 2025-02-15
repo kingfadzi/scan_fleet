@@ -9,7 +9,7 @@ usage() {
     echo "  $0 start server <env>"
     echo "  $0 start worker <pool-name> <env> <instance>"
     echo "  $0 stop server"
-    echo "  $0 stop worker <pool-name> <instance>"
+    echo "  $0 stop worker <pool-name> <env> <instance>"
     echo "  $0 restart server <env>"
     echo "  $0 restart worker <pool-name> <env> <instance>"
     exit 1
@@ -32,7 +32,7 @@ echo "DEBUG: COMMAND='$COMMAND', SERVICE='$SERVICE', All Args: $@"
 if [[ "$COMMAND" == "start" || "$COMMAND" == "restart" ]]; then
     if [[ "$SERVICE" == "worker" ]]; then
         if [ $# -lt 5 ]; then
-            echo "ERROR: Missing work pool name or instance ID."
+            echo "ERROR: Missing work pool name, environment, or instance ID."
             usage
         fi
         WORK_POOL=$3
@@ -54,15 +54,16 @@ if [[ "$COMMAND" == "start" || "$COMMAND" == "restart" ]]; then
     fi
 fi
 
-# For stop worker command, assign pool and instance from arguments
+# For stop worker command, assign pool, env and instance from arguments
 if [ "$COMMAND" == "stop" ] && [ "$SERVICE" == "worker" ]; then
-    if [ $# -lt 4 ]; then
-        echo "ERROR: Missing work pool name or instance ID for stopping worker."
+    if [ $# -lt 5 ]; then
+        echo "ERROR: Missing work pool name, environment, or instance ID for stopping worker."
         usage
     fi
     WORK_POOL=$3
-    INSTANCE=$4
-    echo "DEBUG: [Stop Worker] WORK_POOL='$WORK_POOL', INSTANCE='$INSTANCE'"
+    ENV_FILE=".env-$4"
+    INSTANCE=$5
+    echo "DEBUG: [Stop Worker] WORK_POOL='$WORK_POOL', INSTANCE='$INSTANCE', ENV_FILE='$ENV_FILE'"
 fi
 
 # For worker start/restart commands, ensure the Docker network exists
@@ -114,7 +115,7 @@ stop_service() {
     if [[ "$SERVICE" == "worker" ]]; then
         echo "DEBUG: Stopping worker container for pool '$WORK_POOL', instance '$INSTANCE'"
         echo "DEBUG: Using project name: '$PROJECT_NAME'"
-        docker compose --project-name "$PROJECT_NAME" -f docker-compose.prefect-worker.yml down
+        docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml down
     else
         echo "Stopping Prefect Server..."
         docker compose -f docker-compose.prefect-server.yml down
