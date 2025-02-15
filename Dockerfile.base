@@ -13,8 +13,12 @@ ARG DEFAULT_GRADLE_VERSION=8.12
 ARG TOOLS_TARBALL_URL="http://192.168.1.188/tools.tar.gz"
 
 RUN echo "[global]" > /etc/pip.conf && \
-    [ -n "$GLOBAL_INDEX" ] && echo "index = ${GLOBAL_INDEX}" >> /etc/pip.conf && \
-    echo "index-url = ${GLOBAL_INDEX_URL}" >> /etc/pip.conf
+    if [ -n "$GLOBAL_INDEX" ]; then \
+      echo "index = ${GLOBAL_INDEX}" >> /etc/pip.conf; \
+    fi && \
+    if [ -n "$GLOBAL_INDEX_URL" ]; then \
+      echo "index-url = ${GLOBAL_INDEX_URL}" >> /etc/pip.conf; \
+    fi
 
 # Install Node.js and npm
 RUN dnf install -y nodejs npm
