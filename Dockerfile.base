@@ -145,10 +145,9 @@ RUN wget --progress=dot:giga -O /tmp/tools.tar.gz "${TOOLS_TARBALL_URL}" \
  && chown -R prefect:prefect /usr/local/bin \
  && chmod -R +x /usr/local/bin
 
-RUN chown prefect:prefect -R /home/prefect/prefect
-RUN chown prefect:prefect -R /home/prefect/prefect/cloned_repositories
-RUN chown prefect:prefect -R /home/prefect/prefect/output
-RUN chown prefect:prefect -R /home/prefect/prefect/logs
+RUN chown prefect:prefect -R /home/prefect/cloned_repositories
+RUN chown prefect:prefect -R /home/prefect/output
+RUN chown prefect:prefect -R /home/prefect/logs
 RUN chown prefect:prefect -R /home/prefect/.cache
 RUN chown prefect:prefect -R /home/prefect/.grype
 RUN chown prefect:prefect -R /home/prefect/.kantra
