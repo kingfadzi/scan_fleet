@@ -12,22 +12,9 @@ ARG GRADLE_VERSIONS="4.10.3 5.6.4 6.9.4 7.6.1 8.8 8.12"
 ARG DEFAULT_GRADLE_VERSION=8.12
 ARG TOOLS_TARBALL_URL="http://192.168.1.188/tools.tar.gz"
 
-COPY keys/ /tmp/keys/
-
-RUN if [ -f "/tmp/keys/tls-ca-bundle.pem" ]; then \
-      mkdir -p /etc/ssl/certs && \
-      cp /tmp/keys/tls-ca-bundle.pem /etc/ssl/certs/ && \
-      echo -e "[global]\ncert = /etc/ssl/certs/tls-ca-bundle.pem" > /etc/pip.conf; \
-    else \
-      echo "[global]" > /etc/pip.conf; \
-    fi && \
-    [ -n "$GLOBAL_INDEX" ] && echo "index = ${GLOBAL_INDEX}" >> /etc/pip.conf; \
+RUN echo "[global]" > /etc/pip.conf && \
+    [ -n "$GLOBAL_INDEX" ] && echo "index = ${GLOBAL_INDEX}" >> /etc/pip.conf && \
     echo "index-url = ${GLOBAL_INDEX_URL}" >> /etc/pip.conf
-
-RUN if [ -f "/tmp/keys/java.cacerts" ]; then \
-      mkdir -p /home/prefect && \
-      cp /tmp/keys/java.cacerts /home/prefect/java.cacerts; \
-    fi
 
 # Install Node.js and npm
 RUN dnf install -y nodejs npm
