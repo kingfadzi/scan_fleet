@@ -1,43 +1,21 @@
-# Use AlmaLinux 8 as the base image
 FROM almalinux:8
 
-# Set environment variables
 ENV PREFECT_VERSION="3.2.1" \
     PREFECT_HOME="/home/prefect"
 
-# Arguments for global index handling
 ARG GLOBAL_INDEX
 ARG GLOBAL_INDEX_URL
 ARG HOST_UID=1000
 ARG HOST_GID=1000
+ARG GRADLE_DISTRIBUTIONS_BASE_URL="https://services.gradle.org/distributions/"
+ARG GRADLE_VERSIONS="4.10.3 5.6.4 6.9.4 7.6.1 8.8 8.12"
+ARG DEFAULT_GRADLE_VERSION=8.12
+ARG TOOLS_TARBALL_URL="http://192.168.1.188/tools.tar.gz"
 
-# Install system dependencies
-RUN dnf update -y && \
-    dnf install -y \
-      python3.11 \
-      python3.11-pip \
-      python3.11-devel \
-      git \
-      curl \
-      wget \
-      unzip \
-      dnf-plugins-core && \
-    dnf clean all
+COPY keys/ /tmp/keys/
 
-RUN dnf install -y postgresql && dnf clean all
-
-# Ensure Python 3.11 is the default
-RUN alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
-    alternatives --set python3 /usr/bin/python3.11
-
-# Upgrade pip and install Prefect
-RUN python3 -m ensurepip && \
-    python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    python3 -m pip install --no-cache-dir "prefect==$PREFECT_VERSION"
-
-# Configure pip global index if available
-RUN mkdir -p /etc/ssl/certs /home/prefect/.pip && \
-    if [ -f "/tmp/keys/tls-ca-bundle.pem" ]; then \
+RUN if [ -f "/tmp/keys/tls-ca-bundle.pem" ]; then \
+      mkdir -p /etc/ssl/certs && \
       cp /tmp/keys/tls-ca-bundle.pem /etc/ssl/certs/ && \
       echo -e "[global]\ncert = /etc/ssl/certs/tls-ca-bundle.pem" > /etc/pip.conf; \
     else \
@@ -46,10 +24,123 @@ RUN mkdir -p /etc/ssl/certs /home/prefect/.pip && \
     [ -n "$GLOBAL_INDEX" ] && echo "index = ${GLOBAL_INDEX}" >> /etc/pip.conf; \
     echo "index-url = ${GLOBAL_INDEX_URL}" >> /etc/pip.conf
 
+RUN if [ -f "/tmp/keys/java.cacerts" ]; then \
+      mkdir -p /home/prefect && \
+      cp /tmp/keys/java.cacerts /home/prefect/java.cacerts; \
+    fi
+
+# Install Node.js and npm
+RUN dnf install -y nodejs npm
+
+# Install Yarn
+RUN npm install -g yarn
+
+# Install golang
+RUN dnf install golang -y
+
+RUN dnf group install -y "Development Tools"
+
+RUN dnf -y update && \
+    dnf module reset -y python36 && \
+    dnf install -y \
+      bash \
+      nc \
+      glibc-langpack-en \
+      python3.11 \
+      python3.11-pip \
+      python3.11-devel \
+      git \
+      wget \
+      curl \
+      unzip \
+      dnf-plugins-core && \
+    dnf module reset -y maven && \
+    dnf module enable -y maven:3.8 && \
+    dnf module install -y maven && \
+    dnf clean all
+
+ENV PYTHONIOENCODING=utf-8
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
+RUN alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
+    alternatives --set python3 /usr/bin/python3.11 && \
+    python3 -m ensurepip && \
+    python3 -m pip install --no-cache-dir --upgrade pip && \
+    python3 -m pip install --no-cache-dir \
+      psycopg2-binary \
+      gitpython==3.1.43 \
+      python-gitlab==5.3.0 \
+      requests==2.32.3 \
+      pandas==2.2.3 \
+      pytz==2024.2 \
+      PyYAML==6.0.2 \
+      numpy \
+      lizard==1.17.13 \
+      semgrep \
+      python-dotenv \
+      redis \
+      checkov \
+      pipreqs \
+      pip-tools \
+      sqlalchemy
+
+# Upgrade pip and install Prefect
+RUN python3 -m ensurepip && \
+    python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    python3 -m pip install --no-cache-dir "prefect==$PREFECT_VERSION"
+
 # FIX: Pre-create UI build directory and set correct permissions
 RUN mkdir -p /usr/local/lib/python3.11/site-packages/prefect/server/ui_build && \
     chown -R ${HOST_UID}:${HOST_GID} /usr/local/lib/python3.11/site-packages/prefect/server/ && \
     chmod -R 777 /usr/local/lib/python3.11/site-packages/prefect/server/
+
+RUN dnf install -y \
+      java-1.8.0-openjdk-devel \
+      java-11-openjdk-devel \
+      java-17-openjdk-devel \
+      java-21-openjdk-devel && \
+    dnf clean all
+
+RUN alternatives --install /usr/bin/java java /usr/lib/jvm/java-1.8.0/bin/java 1080 && \
+    alternatives --install /usr/bin/java java /usr/lib/jvm/java-11/bin/java 1110 && \
+    alternatives --install /usr/bin/java java /usr/lib/jvm/java-17/bin/java 1170 && \
+    alternatives --install /usr/bin/java java /usr/lib/jvm/java-21/bin/java 1210 && \
+    alternatives --set java /usr/lib/jvm/java-17/bin/java
+
+ENV JAVA_8_HOME="/usr/lib/jvm/java-1.8.0"
+ENV JAVA_11_HOME="/usr/lib/jvm/java-11"
+ENV JAVA_17_HOME="/usr/lib/jvm/java-17"
+ENV JAVA_21_HOME="/usr/lib/jvm/java-21"
+ENV JAVA_HOME="${JAVA_17_HOME}"
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+RUN dnf install -y unzip wget \
+ && mkdir -p /opt/gradle \
+ && for VERSION in $GRADLE_VERSIONS; do \
+      echo "Installing Gradle $VERSION..."; \
+      wget "${GRADLE_DISTRIBUTIONS_BASE_URL}gradle-${VERSION}-bin.zip" -O /tmp/gradle-${VERSION}-bin.zip; \
+      unzip -qo /tmp/gradle-${VERSION}-bin.zip -d /opt/gradle; \
+      rm /tmp/gradle-${VERSION}-bin.zip; \
+      ln -s "/opt/gradle/gradle-${VERSION}/bin/gradle" "/usr/local/bin/gradle-${VERSION}"; \
+    done \
+ && dnf clean all
+
+ENV GRADLE_HOME="/opt/gradle/gradle-${DEFAULT_GRADLE_VERSION}"
+ENV PATH="$GRADLE_HOME/bin:$PATH"
+
+RUN existing_group=$(getent group ${HOST_GID} | cut -d: -f1) && \
+    if [ -z "$existing_group" ]; then \
+      groupadd -g ${HOST_GID} prefect; \
+    else \
+      groupmod -n prefect "$existing_group"; \
+    fi && \
+    existing_user=$(getent passwd ${HOST_UID} | cut -d: -f1) && \
+    if [ -z "$existing_user" ]; then \
+      useradd -m -u ${HOST_UID} -g prefect prefect; \
+    else \
+      usermod -l prefect "$existing_user"; \
+    fi
 
 # Ensure the PREFECT_HOME directory exists and is writable
 RUN mkdir -p /home/prefect && \
@@ -60,11 +151,41 @@ RUN mkdir -p /home/prefect && \
 RUN groupadd -g ${HOST_GID} prefect && \
     useradd -m -u ${HOST_UID} -g prefect -d /home/prefect prefect
 
-# Switch to non-root user
+RUN wget --progress=dot:giga -O /tmp/tools.tar.gz "${TOOLS_TARBALL_URL}" \
+    || (echo "Error: Failed to download tools tarball" && exit 1) \
+ && tar -xzvf /tmp/tools.tar.gz -C / \
+ && rm /tmp/tools.tar.gz \
+ && chown -R prefect:prefect /usr/local/bin \
+ && chmod -R +x /usr/local/bin
+
+RUN chown prefect:prefect -R /home/prefect/prefect
+RUN chown prefect:prefect -R /home/prefect/prefect/cloned_repositories
+RUN chown prefect:prefect -R /home/prefect/prefect/output
+RUN chown prefect:prefect -R /home/prefect/prefect/logs
+RUN chown prefect:prefect -R /home/prefect/.cache
+RUN chown prefect:prefect -R /home/prefect/.grype
+RUN chown prefect:prefect -R /home/prefect/.kantra
+RUN chown prefect:prefect -R /home/prefect/.semgrep
+RUN chown prefect:prefect -R /home/prefect/.trivy
+RUN chown prefect:prefect -R /home/prefect/.syft
+RUN chown prefect:prefect -R /home/prefect/.m2
+RUN chown prefect:prefect -R /home/prefect/.gradle
+RUN chown prefect:prefect -R /home/prefect/.ssh
+
+RUN chmod 700 /home/prefect/.ssh
+RUN chmod 755 /home/prefect/.m2
+RUN chmod 755 /home/prefect/.gradle
+
+
+RUN mkdir -p /home/prefect/.pip && \
+    if [ -n "$GLOBAL_CERT" ]; then \
+      echo -e "[global]\ncert = ${GLOBAL_CERT}\nindex-url = ${GLOBAL_INDEX_URL}" > /home/prefect/.pip/pip.conf; \
+    else \
+      echo -e "[global]\nindex-url = ${GLOBAL_INDEX_URL}" > /home/prefect/.pip/pip.conf; \
+    fi
+
 USER prefect
 
-# Set working directory
 WORKDIR $PREFECT_HOME
 
-# Default command (override in child images)
 CMD ["/bin/bash"]
