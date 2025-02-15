@@ -21,11 +21,6 @@ services:
       PREFECT_API_URL: ${PREFECT_API_URL}
       WORK_POOL: ${WORK_POOL}  # Must be provided at runtime
       INSTANCE: ${INSTANCE}    # Must be provided at runtime
-      POSTGRES_HOST: ${POSTGRES_HOST}
-      POSTGRES_PORT: ${POSTGRES_PORT}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
       HTTP_PROXY: ${HTTP_PROXY:-}
       HTTPS_PROXY: ${HTTPS_PROXY:-}
       NO_PROXY: ${NO_PROXY:-}
