@@ -138,10 +138,6 @@ RUN mkdir -p /home/prefect && \
     chown -R ${HOST_UID}:${HOST_GID} /home/prefect && \
     chmod -R 777 /home/prefect
 
-# Create non-root user with proper home directory
-RUN groupadd -g ${HOST_GID} prefect && \
-    useradd -m -u ${HOST_UID} -g prefect -d /home/prefect prefect
-
 RUN wget --progress=dot:giga -O /tmp/tools.tar.gz "${TOOLS_TARBALL_URL}" \
     || (echo "Error: Failed to download tools tarball" && exit 1) \
  && tar -xzvf /tmp/tools.tar.gz -C / \
