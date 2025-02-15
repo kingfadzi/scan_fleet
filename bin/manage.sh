@@ -54,7 +54,7 @@ if [[ "$COMMAND" == "start" || "$COMMAND" == "restart" ]]; then
     fi
 fi
 
-# For stop worker command, assign pool, env and instance from arguments
+# For stop worker command, assign pool, env, and instance from arguments
 if [ "$COMMAND" == "stop" ] && [ "$SERVICE" == "worker" ]; then
     if [ $# -lt 5 ]; then
         echo "ERROR: Missing work pool name, environment, or instance ID for stopping worker."
@@ -103,10 +103,9 @@ start_worker() {
     echo "Building Prefect Worker image..."
     docker build --no-cache -t scanfleet-prefect-worker -f Dockerfile.prefect-worker .
     echo "DEBUG: Starting Prefect Worker in pool: '$WORK_POOL' (Instance: '$INSTANCE')"
-    export WORK_POOL="$WORK_POOL"
-    export INSTANCE="$INSTANCE"
-    echo "DEBUG: Using project name: '$PROJECT_NAME'"
-    docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml up -d
+    # Explicitly pass WORK_POOL and INSTANCE to Docker Compose
+    env WORK_POOL="$WORK_POOL" INSTANCE="$INSTANCE" \
+      docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml up -d
     echo "Prefect Worker started successfully in pool: '$WORK_POOL' (Instance: '$INSTANCE')"
 }
 
@@ -115,7 +114,9 @@ stop_service() {
     if [[ "$SERVICE" == "worker" ]]; then
         echo "DEBUG: Stopping worker container for pool '$WORK_POOL', instance '$INSTANCE'"
         echo "DEBUG: Using project name: '$PROJECT_NAME'"
-        docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml down
+        # Explicitly pass WORK_POOL and INSTANCE so Docker Compose can substitute them
+        env WORK_POOL="$WORK_POOL" INSTANCE="$INSTANCE" \
+          docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml down
     else
         echo "Stopping Prefect Server..."
         docker compose -f docker-compose.prefect-server.yml down
