@@ -12,6 +12,12 @@ ARG GRADLE_VERSIONS="4.10.3 5.6.4 6.9.4 7.6.1 8.8 8.12"
 ARG DEFAULT_GRADLE_VERSION=8.12
 ARG TOOLS_TARBALL_URL="http://192.168.1.188/tools.tar.gz"
 
+ENV TRIVY_CACHE_DIR=$PREFECT_HOME/.cache/trivy/db
+ENV GRYPE_DB_CACHE_DIR=$PREFECT_HOME/.cache/grype/db
+ENV GRYPE_DB_AUTO_UPDATE=false
+ENV GRYPE_DB_VALIDATE_AGE=false
+ENV SYFT_CHECK_FOR_APP_UPDATE=false
+
 RUN echo "[global]" > /etc/pip.conf && \
     if [ -n "$GLOBAL_INDEX" ]; then \
       echo "index = ${GLOBAL_INDEX}" >> /etc/pip.conf; \
