@@ -16,7 +16,7 @@ services:
     ports:
       - "4200:4200"
     volumes:
-      - prefect-data:/home/prefect
+      - prefect-data:${CONTAINER_HOME}
     restart: always
     networks:
       - scannet
