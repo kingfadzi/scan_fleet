@@ -6,12 +6,12 @@ services:
       dockerfile: Dockerfile.prefect-worker
       args:
         GLOBAL_CERT: ${GLOBAL_CERT}
-        GLOBAL_INDEX: ${GLOBAL_INDEX:-"<your-new-global-index>"}
-        GLOBAL_INDEX_URL: ${GLOBAL_INDEX_URL:-"<your-new-global-index-url>"}
+        GLOBAL_INDEX: ${GLOBAL_INDEX}
+        GLOBAL_INDEX_URL: ${GLOBAL_INDEX_URL}
         HOST_UID: ${HOST_UID:-1000}
         HOST_GID: ${HOST_GID:-1000}
-        GRADLE_DISTRIBUTIONS_BASE_URL: ${GRADLE_DISTRIBUTIONS_BASE_URL:-"https://services.gradle.org/distributions/"}
-        TOOLS_TARBALL_URL: ${TOOLS_TARBALL_URL:-"http://192.168.1.188/tools.tar.gz"}
+        GRADLE_DISTRIBUTIONS_BASE_URL: ${GRADLE_DISTRIBUTIONS_BASE_URL}
+        TOOLS_TARBALL_URL: ${TOOLS_TARBALL_URL}
     tmpfs:
       - ${CONTAINER_HOME}/cloned_repositories:size=20G,mode=1777,exec
       - ${CONTAINER_HOME}/logs:size=500M,mode=1777,uid=${HOST_UID},gid=${HOST_GID},exec
@@ -21,7 +21,7 @@ services:
       - "worker_instance=${INSTANCE}"
     environment:
       # Override the base image's PREFECT_HOME value at runtime:
-      PREFECT_HOME: ${PREFECT_HOME:-"/home/prefect"}
+      PREFECT_HOME: ${PREFECT_HOME}
       # Other runtime environment variables:
       PREFECT_API_URL: ${PREFECT_API_URL}
       WORK_POOL: ${WORK_POOL}  # Must be provided at runtime
