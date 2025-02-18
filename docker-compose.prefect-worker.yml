@@ -12,6 +12,7 @@ services:
         HOST_GID: ${HOST_GID:-1000}
         GRADLE_DISTRIBUTIONS_BASE_URL: ${GRADLE_DISTRIBUTIONS_BASE_URL}
         TOOLS_TARBALL_URL: ${TOOLS_TARBALL_URL}
+        RULESETS_GIT_URL: ${RULESETS_GIT_URL}
     tmpfs:
       - ${CONTAINER_HOME}/cloned_repositories:size=20G,mode=1777,exec
       - ${CONTAINER_HOME}/logs:size=500M,mode=1777,uid=${HOST_UID},gid=${HOST_GID},exec
@@ -20,12 +21,11 @@ services:
       - "worker_pool=${WORK_POOL}"
       - "worker_instance=${INSTANCE}"
     environment:
-      # Override the base image's PREFECT_HOME value at runtime:
       PREFECT_HOME: ${PREFECT_HOME}
-      # Other runtime environment variables:
       PREFECT_API_URL: ${PREFECT_API_URL}
       WORK_POOL: ${WORK_POOL}  # Must be provided at runtime
       INSTANCE: ${INSTANCE}    # Must be provided at runtime
+      RULESETS_GIT_URL: ${RULESETS_GIT_URL}
       RULESET_MAPPING_FILE: ${RULESET_MAPPING_FILE}
       METRICS_DATABASE_USER: ${METRICS_DATABASE_USER}
       METRICS_DATABASE_PASSWORD: ${METRICS_DATABASE_PASSWORD}
