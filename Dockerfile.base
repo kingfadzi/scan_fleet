@@ -50,6 +50,7 @@ RUN dnf -y update && \
       wget \
       curl \
       unzip \
+      postgresql \
       dnf-plugins-core && \
     dnf module reset -y maven && \
     dnf module enable -y maven:3.8 && \
