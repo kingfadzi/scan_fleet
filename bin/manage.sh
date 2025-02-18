@@ -72,16 +72,29 @@ if [[ "$COMMAND" == "start" || "$COMMAND" == "restart" ]]; then
     fi
 fi
 
-# For stop worker command, assign pool, env, and instance from arguments
-if [ "$COMMAND" == "stop" ] && [ "$SERVICE" == "worker" ]; then
-    if [ $# -lt 5 ]; then
-        echo "ERROR: Missing work pool name, environment, or instance ID for stopping worker."
-        usage
+# For stop commands, handle server and worker separately
+if [ "$COMMAND" == "stop" ]; then
+    if [ "$SERVICE" == "worker" ]; then
+        if [ $# -lt 5 ]; then
+            echo "ERROR: Missing work pool name, environment, or instance ID for stopping worker."
+            usage
+        fi
+        WORK_POOL=$3
+        ENV_FILE=".env-$4"
+        INSTANCE=$5
+        echo "DEBUG: [Stop Worker] WORK_POOL='$WORK_POOL', INSTANCE='$INSTANCE', ENV_FILE='$ENV_FILE'"
+    elif [ "$SERVICE" == "server" ]; then
+        if [ $# -lt 3 ]; then
+            echo "ERROR: Missing environment argument for stopping server."
+            usage
+        fi
+        ENV_FILE=".env-$3"
+        echo "DEBUG: [Stop Server] ENV_FILE='$ENV_FILE'"
+        if [ ! -f "$ENV_FILE" ]; then
+            echo "ERROR: Environment file $ENV_FILE not found!"
+            exit 1
+        fi
     fi
-    WORK_POOL=$3
-    ENV_FILE=".env-$4"
-    INSTANCE=$5
-    echo "DEBUG: [Stop Worker] WORK_POOL='$WORK_POOL', INSTANCE='$INSTANCE', ENV_FILE='$ENV_FILE'"
 fi
 
 # For worker start/restart commands, ensure the Docker network exists
@@ -123,6 +136,10 @@ start_server() {
     echo "Building Prefect Server image..."
     docker build --no-cache -t scanfleet-prefect-server -f Dockerfile.prefect-server .
     echo "Starting Prefect Server..."
+    # Source the environment file so variables (like CONTAINER_HOME) override those in .env
+    set -a
+    . "$ENV_FILE"
+    set +a
     docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml up -d
     echo "Prefect Server started successfully!"
 }
@@ -132,6 +149,10 @@ start_worker() {
     echo "Building Prefect Worker image..."
     docker build --no-cache -t scanfleet-prefect-worker -f Dockerfile.prefect-worker .
     echo "DEBUG: Starting Prefect Worker in pool: '$WORK_POOL' (Instance: '$INSTANCE')"
+    # Source the environment file to ensure variables are in the shell for substitution
+    set -a
+    . "$ENV_FILE"
+    set +a
     # Explicitly pass WORK_POOL and INSTANCE to Docker Compose
     env WORK_POOL="$WORK_POOL" INSTANCE="$INSTANCE" \
       docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml up -d
@@ -143,12 +164,18 @@ stop_service() {
     if [[ "$SERVICE" == "worker" ]]; then
         echo "DEBUG: Stopping worker container for pool '$WORK_POOL', instance '$INSTANCE'"
         echo "DEBUG: Using project name: '$PROJECT_NAME'"
-        # Explicitly pass WORK_POOL and INSTANCE so Docker Compose can substitute them
+        # Source the environment file so variables are set for substitution
+        set -a
+        . "$ENV_FILE"
+        set +a
         env WORK_POOL="$WORK_POOL" INSTANCE="$INSTANCE" \
           docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml down
     else
         echo "Stopping Prefect Server..."
-        # Now passing the env file to load CONTAINER_HOME and other variables
+        # Source the environment file to ensure CONTAINER_HOME (and others) are exported in the shell
+        set -a
+        . "$ENV_FILE"
+        set +a
         docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml down
     fi
     echo "$SERVICE stopped."
