@@ -5,7 +5,7 @@ set -e  # Exit on error
 # Function to show usage
 usage() {
     echo "Usage:"
-    echo "  $0 build"
+    echo "  $0 build <env>"
     echo "  $0 start server <env>"
     echo "  $0 start worker <pool-name> <env> <instance>"
     echo "  $0 stop server"
@@ -27,6 +27,24 @@ INSTANCE=""
 ENV_FILE=""
 
 echo "DEBUG: COMMAND='$COMMAND', SERVICE='$SERVICE', All Args: $@"
+
+# For build command, require an environment parameter and load its .env file
+if [[ "$COMMAND" == "build" ]]; then
+    if [ $# -lt 2 ]; then
+        echo "ERROR: Missing environment argument for build."
+        usage
+    fi
+    ENV_FILE=".env-$2"
+    echo "DEBUG: [Build] ENV_FILE='$ENV_FILE'"
+    if [ ! -f "$ENV_FILE" ]; then
+        echo "ERROR: Environment file $ENV_FILE not found!"
+        exit 1
+    fi
+    # Export variables from the env file so they can be used as build args
+    set -a
+    . "$ENV_FILE"
+    set +a
+fi
 
 # For start/restart commands, load the env file and variables
 if [[ "$COMMAND" == "start" || "$COMMAND" == "restart" ]]; then
@@ -80,12 +98,23 @@ if [[ "$SERVICE" == "worker" ]]; then
     echo "DEBUG: Generated PROJECT_NAME: '$PROJECT_NAME'"
 fi
 
-# Function to build all images
+# Function to build all images with build args from the env file
 build_all() {
     echo "Building all images..."
-    docker build --no-cache -t scanfleet-base -f Dockerfile.base .
-    docker build --no-cache -t scanfleet-prefect-server -f Dockerfile.prefect-server .
-    docker build --no-cache -t scanfleet-prefect-worker -f Dockerfile.prefect-worker .
+
+    # Compose the build arguments using variables loaded from the env file
+    BUILD_ARGS="--build-arg GLOBAL_INDEX=${GLOBAL_INDEX} \
+--build-arg GLOBAL_INDEX_URL=${GLOBAL_INDEX_URL} \
+--build-arg HOST_UID=${HOST_UID:-1000} \
+--build-arg HOST_GID=${HOST_GID:-1000} \
+--build-arg GRADLE_DISTRIBUTIONS_BASE_URL=${GRADLE_DISTRIBUTIONS_BASE_URL} \
+--build-arg GRADLE_VERSIONS='${GRADLE_VERSIONS}' \
+--build-arg DEFAULT_GRADLE_VERSION=${DEFAULT_GRADLE_VERSION:-8.12} \
+--build-arg TOOLS_TARBALL_URL=${TOOLS_TARBALL_URL}"
+
+    docker build --no-cache $BUILD_ARGS -t scanfleet-base -f Dockerfile.base .
+    docker build --no-cache $BUILD_ARGS -t scanfleet-prefect-server -f Dockerfile.prefect-server .
+    docker build --no-cache $BUILD_ARGS -t scanfleet-prefect-worker -f Dockerfile.prefect-worker .
     echo "All images built successfully!"
 }
 
