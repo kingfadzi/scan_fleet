@@ -21,7 +21,8 @@ services:
       - "worker_pool=${WORK_POOL}"
       - "worker_instance=${INSTANCE}"
     environment:
-      PREFECT_HOME: ${PREFECT_HOME}
+      CONTAINER_HOME: ${CONTAINER_HOME}
+      PREFECT_HOME: ${CONTAINER_HOME}
       PREFECT_API_URL: ${PREFECT_API_URL}
       WORK_POOL: ${WORK_POOL}  # Must be provided at runtime
       INSTANCE: ${INSTANCE}    # Must be provided at runtime
