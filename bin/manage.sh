@@ -8,7 +8,7 @@ usage() {
     echo "  $0 build <env>"
     echo "  $0 start server <env>"
     echo "  $0 start worker <pool-name> <env> <instance>"
-    echo "  $0 stop server"
+    echo "  $0 stop server <env>"
     echo "  $0 stop worker <pool-name> <env> <instance>"
     echo "  $0 restart server <env>"
     echo "  $0 restart worker <pool-name> <env> <instance>"
@@ -148,7 +148,8 @@ stop_service() {
           docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml down
     else
         echo "Stopping Prefect Server..."
-        docker compose -f docker-compose.prefect-server.yml down
+        # Now passing the env file to load CONTAINER_HOME and other variables
+        docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml down
     fi
     echo "$SERVICE stopped."
 }
