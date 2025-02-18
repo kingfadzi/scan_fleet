@@ -118,11 +118,12 @@ build_all() {
     # Compose the build arguments using variables loaded from the env file
     BUILD_ARGS="--build-arg GLOBAL_INDEX=${GLOBAL_INDEX} \
 --build-arg GLOBAL_INDEX_URL=${GLOBAL_INDEX_URL} \
---build-arg HOST_UID=${HOST_UID:-1000} \
---build-arg HOST_GID=${HOST_GID:-1000} \
+--build-arg GLOBAL_CERT=${GLOBAL_CERT} \
+--build-arg HOST_UID=${HOST_UID} \
+--build-arg HOST_GID=${HOST_GID} \
 --build-arg GRADLE_DISTRIBUTIONS_BASE_URL=${GRADLE_DISTRIBUTIONS_BASE_URL} \
 --build-arg GRADLE_VERSIONS='${GRADLE_VERSIONS}' \
---build-arg DEFAULT_GRADLE_VERSION=${DEFAULT_GRADLE_VERSION:-8.12} \
+--build-arg DEFAULT_GRADLE_VERSION=${DEFAULT_GRADLE_VERSION} \
 --build-arg TOOLS_TARBALL_URL=${TOOLS_TARBALL_URL}"
 
     docker build --no-cache $BUILD_ARGS -t scanfleet-base -f Dockerfile.base .
