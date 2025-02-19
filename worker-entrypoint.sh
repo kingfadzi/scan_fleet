@@ -31,19 +31,13 @@ fi
     chown prefect:prefect /home/prefect/java.cacerts
 }
 
-#[ -f /tmp/keys/tls-ca-bundle.pem ] && {
-#    cp /tmp/keys/tls-ca-bundle.pem /etc/ssl/certs/
-#    chmod 644 /etc/ssl/certs/tls-ca-bundle.pem
-#    chown prefect:prefect /etc/ssl/certs/tls-ca-bundle.pem
-#}
-
 [ -d /home/prefect/.ssh ] && {
     chmod 700 /home/prefect/.ssh
     chown prefect:prefect /home/prefect/.ssh
 }
 
 rm -rf /home/prefect/.kantra/custom-rulesets
-if ! git clone "$RULESETS_GIT_URL" /home/prefect/.kantra/custom-rulesets; then
+if ! GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git clone "$RULESETS_GIT_URL" /home/prefect/.kantra/custom-rulesets; then
     echo "ERROR: Failed cloning rulesets from $RULESETS_GIT_URL"
     exit 1
 fi
