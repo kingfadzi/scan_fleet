@@ -114,16 +114,19 @@ ENV JAVA_21_HOME="/usr/lib/jvm/java-21"
 ENV JAVA_HOME="${JAVA_17_HOME}"
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
-RUN dnf install -y unzip wget \
- && mkdir -p /opt/gradle \
- && for VERSION in $GRADLE_VERSIONS; do \
-      echo "Installing Gradle $VERSION..."; \
-      wget "${GRADLE_DISTRIBUTIONS_BASE_URL}gradle-${VERSION}-bin.zip" -O /tmp/gradle-${VERSION}-bin.zip; \
-      unzip -qo /tmp/gradle-${VERSION}-bin.zip -d /opt/gradle; \
-      rm /tmp/gradle-${VERSION}-bin.zip; \
-      ln -s "/opt/gradle/gradle-${VERSION}/bin/gradle" "/usr/local/bin/gradle-${VERSION}"; \
-    done \
- && dnf clean all
+RUN set -e && \
+    dnf install -y unzip wget && \
+    mkdir -p /opt/gradle && \
+    for VERSION in $GRADLE_VERSIONS; do \
+        FULL_URL="${GRADLE_DISTRIBUTIONS_BASE_URL}gradle-${VERSION}-bin.zip"; \
+        echo "Installing Gradle $VERSION from $FULL_URL..."; \
+        wget "$FULL_URL" -O /tmp/gradle-${VERSION}-bin.zip || { echo "Error: Failed to download Gradle $VERSION" >&2; exit 1; }; \
+        unzip -qo /tmp/gradle-${VERSION}-bin.zip -d /opt/gradle || { echo "Error: Failed to unzip Gradle $VERSION" >&2; exit 1; }; \
+        rm /tmp/gradle-${VERSION}-bin.zip; \
+        ln -s "/opt/gradle/gradle-${VERSION}/bin/gradle" "/usr/local/bin/gradle-${VERSION}"; \
+    done && \
+    dnf clean all
+
 
 RUN mkdir -p \
       /home/prefect/ \
