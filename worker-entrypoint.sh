@@ -31,11 +31,11 @@ fi
     chown prefect:prefect /home/prefect/java.cacerts
 }
 
-[ -f /tmp/keys/tls-ca-bundle.pem ] && {
-    cp /tmp/keys/tls-ca-bundle.pem /etc/ssl/certs/
-    chmod 644 /etc/ssl/certs/tls-ca-bundle.pem
-    chown prefect:prefect /etc/ssl/certs/tls-ca-bundle.pem
-}
+#[ -f /tmp/keys/tls-ca-bundle.pem ] && {
+#    cp /tmp/keys/tls-ca-bundle.pem /etc/ssl/certs/
+#    chmod 644 /etc/ssl/certs/tls-ca-bundle.pem
+#    chown prefect:prefect /etc/ssl/certs/tls-ca-bundle.pem
+#}
 
 [ -d /home/prefect/.ssh ] && {
     chmod 700 /home/prefect/.ssh
