@@ -19,7 +19,7 @@ ENV XEOL_DB_CACHE_DIR=$PREFECT_HOME/.cache/xeol/db
 ENV GRYPE_DB_AUTO_UPDATE=false
 ENV GRYPE_DB_VALIDATE_AGE=false
 ENV SYFT_CHECK_FOR_APP_UPDATE=false
-ENV XEOL_DB_VALIDATE_AGE=false
+ENV XEOL_DB_AUTO_UPDATE=false
 
 RUN echo "[global]" > /etc/pip.conf && \
     if [ -n "$GLOBAL_INDEX" ]; then \
