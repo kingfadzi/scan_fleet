@@ -83,6 +83,7 @@ RUN alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
       redis \
       checkov \
       pipreqs \
+      lxml \
       pip-tools \
       sqlalchemy
 
