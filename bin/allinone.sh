@@ -29,7 +29,7 @@ set -a
 set +a
 
 ###########################
-# Build Function
+# Build Function: Builds all images
 ###########################
 build_all() {
     echo "Building all images..."
@@ -51,7 +51,7 @@ build_all() {
 }
 
 ###########################
-# Start All Function
+# Start Function: Starts the Prefect Server and all worker pools
 ###########################
 start_all() {
     echo "Starting Prefect Server..."
@@ -87,7 +87,7 @@ start_all() {
 }
 
 ###########################
-# Stop All Function
+# Stop Function: Stops the Prefect Server and all worker pools
 ###########################
 stop_all() {
     echo "Stopping Prefect Server..."
@@ -114,11 +114,10 @@ stop_all() {
 }
 
 ###########################
-# Restart All Function
+# Restart Function: Stops then starts services (without rebuilding)
 ###########################
 restart_all() {
     stop_all
-    build_all
     start_all
 }
 
@@ -130,7 +129,6 @@ case "$COMMAND" in
         build_all
         ;;
     start)
-        build_all
         start_all
         ;;
     stop)
