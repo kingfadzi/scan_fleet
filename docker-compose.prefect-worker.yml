@@ -52,7 +52,10 @@ services:
       PREFECT_LOGGING_PERSISTENCE: false
     restart: always
     logging:
-      driver: "none"
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
       - ${SSH_KEYS_PATH}:/tmp/keys/id_ed25519:ro,Z
       - ${SSH_KEYS_PUB_PATH}:/tmp/keys/id_ed25519.pub:ro,Z
