@@ -36,12 +36,6 @@ fi
     chown prefect:prefect /home/prefect/.ssh
 }
 
-rm -rf /home/prefect/.kantra/custom-rulesets
-if ! GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git clone "$RULESETS_GIT_URL" /home/prefect/.kantra/custom-rulesets; then
-    echo "ERROR: Failed cloning rulesets from $RULESETS_GIT_URL"
-    exit 1
-fi
-
 echo "Starting Prefect Worker in pool: $WORK_POOL"
 
 exec prefect worker start -p "$WORK_POOL"
