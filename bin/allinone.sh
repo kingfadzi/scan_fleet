@@ -28,12 +28,8 @@ set -a
 . "$ENV_FILE"
 set +a
 
-###########################
-# Build Function: Builds all images
-###########################
 build_all() {
     echo "Building all images..."
-    # Compose the build arguments using variables loaded from the env file.
     BUILD_ARGS="--build-arg GLOBAL_INDEX=${GLOBAL_INDEX} \
 --build-arg GLOBAL_INDEX_URL=${GLOBAL_INDEX_URL} \
 --build-arg GLOBAL_CERT=${GLOBAL_CERT} \
@@ -50,14 +46,10 @@ build_all() {
     echo "All images built successfully!"
 }
 
-###########################
-# Start Function: Starts the Prefect Server and all worker pools
-###########################
 start_all() {
     echo "Starting Prefect Server..."
     docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml up -d
 
-    # Ensure Docker network for workers exists.
     if ! docker network ls | grep -q "scan_fleet_scannet"; then
         echo "Creating Docker network: scan_fleet_scannet"
         docker network create scan_fleet_scannet
@@ -67,7 +59,6 @@ start_all() {
         echo "WARNING: WORKER_POOLS variable not defined in $ENV_FILE. No workers to start."
     else
         echo "Starting Prefect Workers..."
-        # WORKER_POOLS should be a comma-separated list in the format pool-name:instance_count.
         IFS=',' read -ra POOLS <<< "$WORKER_POOLS"
         for pool_entry in "${POOLS[@]}"; do
             IFS=':' read -r pool_name instance_count <<< "$pool_entry"
@@ -86,9 +77,6 @@ start_all() {
     echo "All services started successfully!"
 }
 
-###########################
-# Stop Function: Stops the Prefect Server and all worker pools
-###########################
 stop_all() {
     echo "Stopping Prefect Server..."
     docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml down
@@ -113,17 +101,12 @@ stop_all() {
     echo "All services stopped."
 }
 
-###########################
-# Restart Function: Stops then starts services (without rebuilding)
-###########################
 restart_all() {
     stop_all
     start_all
 }
 
-###########################
-# Command Execution
-###########################
+
 case "$COMMAND" in
     build)
         build_all
