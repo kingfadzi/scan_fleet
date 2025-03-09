@@ -47,8 +47,8 @@ build_all() {
 }
 
 start_all() {
-    echo "Starting Prefect Server..."
-    docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml up -d
+    #echo "Starting Prefect Server..."
+    #docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml up -d
 
     if ! docker network ls | grep -q "scan_fleet_scannet"; then
         echo "Creating Docker network: scan_fleet_scannet"
