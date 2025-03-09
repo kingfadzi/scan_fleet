@@ -88,14 +88,15 @@ RUN alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
       sqlalchemy
 
 RUN pip install \
-    opentelemetry-sdk==1.25.0 \
-    opentelemetry-api==1.25.0 \
-    opentelemetry-exporter-otlp \
-    opentelemetry-instrumentation \
-    opentelemetry-instrumentation-aiohttp-client \
-    opentelemetry-instrumentation-sqlalchemy \
-    opentelemetry-instrumentation-requests \
-    opentelemetry-instrumentation-psycopg2
+    opentelemetry-api==1.25.0 \ # Explicitly pin API version
+    opentelemetry-sdk==1.25.0 \ # Match SDK to API
+    opentelemetry-exporter-otlp==1.25.0 \ # Match OTLP exporter
+    opentelemetry-semantic-conventions==0.25b0 \ # Required for compatibility
+    opentelemetry-instrumentation==0.43b0 \ # Compatible with SDK 1.25.0
+    opentelemetry-instrumentation-aiohttp-client==0.43b0 \
+    opentelemetry-instrumentation-sqlalchemy==0.43b0 \
+    opentelemetry-instrumentation-requests==0.43b0 \
+    opentelemetry-instrumentation-psycopg2==0.43b0
 
 # Upgrade pip and install Prefect
 RUN python3 -m ensurepip && \
