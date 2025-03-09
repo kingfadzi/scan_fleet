@@ -88,13 +88,13 @@ RUN alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
 
 # Install OpenTelemetry packages for both Server and Worker
 RUN pip install \
-    opentelemetry-sdk \ # Core SDK
-    opentelemetry-exporter-otlp \ # OTLP exporter for SigNoz
-    opentelemetry-instrumentation \ # Auto-instrumentation framework
-    opentelemetry-instrumentation-aiohttp-client \ # For Server (async HTTP)
-    opentelemetry-instrumentation-sqlalchemy \ # For Server (DB)
-    opentelemetry-instrumentation-requests \ # For Worker (HTTP calls)
-    opentelemetry-instrumentation-psycopg2 # For Worker (PostgreSQL)  
+    opentelemetry-sdk \
+    opentelemetry-exporter-otlp \
+    opentelemetry-instrumentation \
+    opentelemetry-instrumentation-aiohttp-client \
+    opentelemetry-instrumentation-sqlalchemy \
+    opentelemetry-instrumentation-requests \
+    opentelemetry-instrumentation-psycopg2
 
 # Upgrade pip and install Prefect
 RUN python3 -m ensurepip && \
