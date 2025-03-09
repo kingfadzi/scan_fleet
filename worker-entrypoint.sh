@@ -38,4 +38,4 @@ fi
 
 echo "Starting Prefect Worker in pool: $WORK_POOL"
 
-exec prefect worker start -p "$WORK_POOL"
+exec opentelemetry-instrument prefect worker start -p "$WORK_POOL"

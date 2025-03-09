@@ -33,4 +33,4 @@ echo "Database is accessible. Applying database migrations..."
 prefect server database upgrade -y
 
 echo "Starting Prefect Server..."
-exec prefect server start --host 0.0.0.0
+exec opentelemetry-instrument prefect server start --host 0.0.0.0

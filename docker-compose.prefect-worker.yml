@@ -46,6 +46,10 @@ services:
       DEFAULT_PROCESS_TIMEOUT: ${DEFAULT_PROCESS_TIMEOUT}
       PREFECT_LOGGING_LEVEL: DEBUG
       PREFECT_LOGGING_PERSISTENCE: false
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+      OTEL_SERVICE_NAME: prefect-server
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: otlp
     restart: always
     logging:
       driver: "json-file"
