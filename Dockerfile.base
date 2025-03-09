@@ -68,8 +68,6 @@ RUN alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
     alternatives --set python3 /usr/bin/python3.11 && \
     python3 -m ensurepip && \
     python3 -m pip install --no-cache-dir --upgrade pip && \
-
-    python3 -m pip install --no-cache-dir \
     psycopg2-binary \
     gitpython==3.1.43 \
     python-gitlab==5.3.0 \
@@ -86,14 +84,17 @@ RUN alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
     pipreqs \
     lxml \
     pip-tools \
-    sqlalchemy \
-    opentelemetry-sdk \                 
-    opentelemetry-exporter-otlp \             # OTLP exporter for SigNoz
-    opentelemetry-instrumentation \           # Auto-instrumentation framework
-    opentelemetry-instrumentation-aiohttp-client \  # For Server (async HTTP)
-    opentelemetry-instrumentation-sqlalchemy \      # For Server (DB)
-    opentelemetry-instrumentation-requests \        # For Worker (HTTP calls)
-    opentelemetry-instrumentation-psycopg2          # For Worker (PostgreSQL)
+    sqlalchemy 
+
+# Install OpenTelemetry packages for both Server and Worker
+RUN pip install \
+    opentelemetry-sdk \ # Core SDK
+    opentelemetry-exporter-otlp \ # OTLP exporter for SigNoz
+    opentelemetry-instrumentation \ # Auto-instrumentation framework
+    opentelemetry-instrumentation-aiohttp-client \ # For Server (async HTTP)
+    opentelemetry-instrumentation-sqlalchemy \ # For Server (DB)
+    opentelemetry-instrumentation-requests \ # For Worker (HTTP calls)
+    opentelemetry-instrumentation-psycopg2 # For Worker (PostgreSQL)  
 
 # Upgrade pip and install Prefect
 RUN python3 -m ensurepip && \
