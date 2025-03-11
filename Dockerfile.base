@@ -14,7 +14,7 @@ ARG TOOLS_TARBALL_URL
 ARG NVM_VERSION=0.39.1
 ARG NODE_VERSION=22.12.0
 ARG NVM_NODEJS_ORG_MIRROR=https://nodejs.org/dist
-ARG NVM_PRIVATE_REPO=https://github.com/nvm-sh/nvm/archive/refs/tags
+ARG NVM_PRIVATE_REPO=https://github.com/nvm-sh/nvm/archive/refs/tags/v
 
 ENV DEFAULT_GRADLE_VERSION=8.12
 ENV GRADLE_VERSIONS="4.10.3 5.6.4 6.9.4 7.6.1 8.8 8.12"
@@ -197,13 +197,17 @@ RUN mkdir -p /home/prefect/.pip && \
     fi
 
 RUN wget --progress=dot:giga \
-    "${NVM_PRIVATE_REPO}/v${NVM_VERSION}.zip" \
-    -O /tmp/nvm.zip || { echo "NVM download failed"; exit 1; }
+        "${NVM_PRIVATE_REPO}${NVM_VERSION}.zip" \
+        -O /tmp/nvm.zip \
+    || { \
+        echo "NVM download failed from ${NVM_PRIVATE_REPO}${NVM_VERSION}.zip"; \
+        exit 1; \
+    }
 
 RUN mkdir -p ${NVM_DIR} && \
     unzip /tmp/nvm.zip -d ${NVM_DIR} && \
-    mv ${NVM_DIR}/nvm-${NVM_VERSION}/* ${NVM_DIR} && \
-    rm -rf ${NVM_DIR}/nvm-${NVM_VERSION} /tmp/nvm.zip
+    mv ${NVM_DIR}/*/* ${NVM_DIR}/ && \
+    rm -rf ${NVM_DIR}/*-${NVM_VERSION} /tmp/nvm.zip
 
 RUN bash -c " \
     source ${NVM_DIR}/nvm.sh && \
