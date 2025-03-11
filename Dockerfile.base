@@ -211,14 +211,13 @@ RUN mkdir -p ${NVM_DIR} && \
 
 RUN bash -c " \
     source ${NVM_DIR}/nvm.sh && \
-    export NVM_NODEJS_ORG_MIRROR=${NVM_NODEJS_ORG_MIRROR} && \
     nvm install ${NODE_VERSION} && \
     nvm alias default ${NODE_VERSION} && \
-    nvm use default"
+    nvm use default && \
+    npm install -g yarn && \
+    node -v && npm -v && yarn -v"
 
 ENV PATH="${NVM_DIR}/versions/node/v${NODE_VERSION}/bin:${PATH}"
-
-RUN npm install -g yarn
 
 RUN node -v && npm -v && yarn -v
 
