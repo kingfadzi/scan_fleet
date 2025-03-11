@@ -124,7 +124,11 @@ build_all() {
 --build-arg GRADLE_DISTRIBUTIONS_BASE_URL=${GRADLE_DISTRIBUTIONS_BASE_URL} \
 --build-arg GRADLE_VERSIONS='${GRADLE_VERSIONS}' \
 --build-arg DEFAULT_GRADLE_VERSION=${DEFAULT_GRADLE_VERSION} \
---build-arg TOOLS_TARBALL_URL=${TOOLS_TARBALL_URL}"
+--build-arg TOOLS_TARBALL_URL=${TOOLS_TARBALL_URL} \
+--build-arg NVM_VERSION=${NVM_VERSION} \
+--build-arg NODE_VERSION=${NODE_VERSION} \
+--build-arg NVM_NODEJS_ORG_MIRROR=${NVM_NODEJS_ORG_MIRROR} \
+--build-arg NVM_PRIVATE_REPO=${NVM_PRIVATE_REPO}
 
     docker build --no-cache $BUILD_ARGS -t scanfleet-base -f Dockerfile.base .
     docker build --no-cache $BUILD_ARGS -t scanfleet-prefect-server -f Dockerfile.prefect-server .
