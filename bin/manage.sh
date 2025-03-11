@@ -128,7 +128,7 @@ build_all() {
 --build-arg NVM_VERSION=${NVM_VERSION} \
 --build-arg NODE_VERSION=${NODE_VERSION} \
 --build-arg NVM_NODEJS_ORG_MIRROR=${NVM_NODEJS_ORG_MIRROR} \
---build-arg NVM_PRIVATE_REPO=${NVM_PRIVATE_REPO}
+--build-arg NVM_PRIVATE_REPO=${NVM_PRIVATE_REPO}"
 
     docker build --no-cache $BUILD_ARGS -t scanfleet-base -f Dockerfile.base .
     docker build --no-cache $BUILD_ARGS -t scanfleet-prefect-server -f Dockerfile.prefect-server .
