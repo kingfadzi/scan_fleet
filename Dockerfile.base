@@ -205,9 +205,9 @@ RUN wget --progress=dot:giga \
     }
 
 RUN mkdir -p ${NVM_DIR} && \
-    unzip /tmp/nvm.zip -d ${NVM_DIR} && \
-    mv ${NVM_DIR}/*/* ${NVM_DIR}/ && \
-    rm -rf ${NVM_DIR}/*-${NVM_VERSION} /tmp/nvm.zip
+    unzip /tmp/nvm.zip -d /tmp && \
+    cp -r /tmp/* ${NVM_DIR}/ && \
+    rm -rf /tmp/*
 
 RUN bash -c " \
     source ${NVM_DIR}/nvm.sh && \
