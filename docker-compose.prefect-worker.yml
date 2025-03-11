@@ -12,6 +12,10 @@ services:
         HOST_GID: ${HOST_GID:-1000}
         GRADLE_DISTRIBUTIONS_BASE_URL: ${GRADLE_DISTRIBUTIONS_BASE_URL}
         TOOLS_TARBALL_URL: ${TOOLS_TARBALL_URL}
+        NVM_VERSION: ${NVM_VERSION}
+        NODE_VERSION: ${NODE_VERSION}
+        NVM_NODEJS_ORG_MIRROR: ${NVM_NODEJS_ORG_MIRROR}
+        NVM_PRIVATE_REPO: ${NVM_PRIVATE_REPO}
     tmpfs:
       - ${CONTAINER_HOME}/cloned_repositories:size=20G,mode=1777,exec
       - ${CONTAINER_HOME}/logs:size=500M,mode=1777,uid=${HOST_UID},gid=${HOST_GID},exec
