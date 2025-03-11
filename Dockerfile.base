@@ -11,6 +11,10 @@ ARG HOST_GID=1000
 ARG GRADLE_DISTRIBUTIONS_BASE_URL
 ARG TOOLS_TARBALL_URL
 
+ARG NVM_VERSION=0.39.1
+ARG NODE_VERSION=22.12.0
+ARG NVM_NODEJS_ORG_MIRROR=https://nodejs.org/dist
+
 ENV DEFAULT_GRADLE_VERSION=8.12
 ENV GRADLE_VERSIONS="4.10.3 5.6.4 6.9.4 7.6.1 8.8 8.12"
 ENV TRIVY_CACHE_DIR=$PREFECT_HOME/.cache/trivy
@@ -20,6 +24,11 @@ ENV GRYPE_DB_AUTO_UPDATE=false
 ENV GRYPE_DB_VALIDATE_AGE=false
 ENV SYFT_CHECK_FOR_APP_UPDATE=false
 ENV XEOL_DB_AUTO_UPDATE=false
+
+ENV NVM_DIR=/usr/local/nvm
+ENV PATH=$NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
+ENV NODE_PATH=$NVM_DIR/v$NODE_VERSION/lib/node_modules
+ENV PATH=$NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 
 RUN echo "[global]" > /etc/pip.conf && \
     if [ -n "$GLOBAL_INDEX" ]; then \
@@ -187,6 +196,23 @@ RUN mkdir -p /home/prefect/.pip && \
     else \
       echo -e "[global]\nindex-url = ${GLOBAL_INDEX_URL}" > /home/prefect/.pip/pip.conf; \
     fi
+
+COPY nvm-sh-${NVM_VERSION}.zip /tmp/nvm.zip
+
+RUN mkdir -p $NVM_DIR && \
+    unzip /tmp/nvm.zip -d $NVM_DIR && \
+    rm /tmp/nvm.zip
+
+
+RUN bash -c "source $NVM_DIR/nvm.sh && \
+    export NVM_NODEJS_ORG_MIRROR=$NVM_NODEJS_ORG_MIRROR && \
+    nvm install $NODE_VERSION && \
+    nvm alias default $NODE_VERSION && \
+    nvm use default"
+
+RUN npm install -g yarn
+
+RUN node -v && npm -v && yarn -v
 
 USER prefect
 
