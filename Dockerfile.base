@@ -219,8 +219,6 @@ RUN bash -c " \
 
 ENV PATH="${NVM_DIR}/versions/node/v${NODE_VERSION}/bin:${PATH}"
 
-RUN node -v && npm -v && yarn -v
-
 USER prefect
 
 WORKDIR $PREFECT_HOME
