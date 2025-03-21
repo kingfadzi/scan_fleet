@@ -10,6 +10,9 @@ ARG HOST_UID
 ARG HOST_GID
 ARG TOOLS_TARBALL_URL
 
+ARG NVM_NODEJS_ORG_MIRROR
+ARG NODE_VERSION
+
 ARG NVM_VERSION
 ARG NODE_VERSION
 ARG NVM_NODEJS_ORG_MIRROR
@@ -51,14 +54,26 @@ RUN mkdir -p ${NVM_DIR} && \
     done && \
     rm -rf /tmp/nvm-temp /tmp/nvm.zip
 
-RUN bash -c " \
-    echo 'Using Node mirror: ${NVM_NODEJS_ORG_MIRROR}' && \
-    source ${NVM_DIR}/nvm.sh && \
-    nvm install ${NODE_VERSION} && \
-    nvm alias default ${NODE_VERSION} && \
-    nvm use default && \
-    npm install -g yarn && \
-    node -v && npm -v && yarn -v"
+RUN echo "Using Node mirror: ${NVM_NODEJS_ORG_MIRROR}" \
+    && . "${NVM_DIR}/nvm.sh" \
+    && nvm install "${NODE_VERSION}" \
+    && nvm alias default "${NODE_VERSION}" \
+    && { [ -n "${NPM_REGISTRY}" ] || (echo "Error: NPM_REGISTRY must be set" && exit 1); } \
+    && npm config set registry "${NPM_REGISTRY}" \
+    && echo "npm registry: $(npm config get registry)" \
+    # Set optional configurations \
+    && { \
+        [ -n "${SASS_BINARY}" ] && npm config set sass_binary "${SASS_BINARY}"; \
+        [ -n "${NPM_STRICT_SSL}" ] && npm config set strict-ssl "${NPM_STRICT_SSL}"; \
+        [ -n "${NPM_CAFILE}" ] && npm config set cafile "${NPM_CAFILE}"; \
+        [ -n "${HTTPS_PROXY}" ] && npm config set https-proxy "${HTTPS_PROXY}"; \
+        [ -n "${HTTP_PROXY}" ] && npm config set proxy "${HTTP_PROXY}"; \
+        [ -n "${NO_PROXY}" ] && npm config set no-proxy "${NO_PROXY}"; \
+    } \
+    && npm install -g yarn \
+    && echo "Versions:" \
+    && node -v && npm -v && yarn -v
+
 
 ENV PATH="${NVM_DIR}/versions/node/v${NODE_VERSION}/bin:${PATH}"
 
