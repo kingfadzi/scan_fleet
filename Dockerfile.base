@@ -27,6 +27,9 @@ ENV NVM_NODEJS_ORG_MIRROR="$NVM_NODEJS_ORG_MIRROR"
 ENV NVM_DIR=/usr/local/nvm
 ENV PATH=$NVM_DIR:$PATH
 
+
+RUN   dnf install -y unzip
+
 RUN mkdir -p ${NVM_DIR} && \
     unzip /tmp/nvm.zip -d /tmp/nvm-temp && \
     echo "Contents of /tmp/nvm-temp:" && ls -la /tmp/nvm-temp && \
