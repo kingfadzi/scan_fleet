@@ -115,7 +115,14 @@ fi
 build_all() {
     echo "Building all images..."
 
+    set -a
+    . $ENV_FILE
+    set +a
+
+    # Generate build arguments dynamically from .env
+    # BUILD_ARGS=$(awk -F= '!/^#/ && NF {print "--build-arg " $1 "=" $2}' .env | tr '\n' ' ')
     # Compose the build arguments using variables loaded from the env file
+
     BUILD_ARGS="--build-arg GLOBAL_INDEX=${GLOBAL_INDEX} \
 --build-arg GLOBAL_INDEX_URL=${GLOBAL_INDEX_URL} \
 --build-arg GLOBAL_CERT=${GLOBAL_CERT} \
@@ -128,7 +135,12 @@ build_all() {
 --build-arg NVM_VERSION=${NVM_VERSION} \
 --build-arg NODE_VERSION=${NODE_VERSION} \
 --build-arg NVM_NODEJS_ORG_MIRROR=${NVM_NODEJS_ORG_MIRROR} \
---build-arg NVM_PRIVATE_REPO=${NVM_PRIVATE_REPO}"
+--build-arg NVM_PRIVATE_REPO=${NVM_PRIVATE_REPO} \
+--build-arg NPM_REGISTRY=${NPM_REGISTRY} \
+--build-arg SASS_BINARY=${SASS_BINARY} \
+--build-arg HTTP_PROXY=${HTTP_PROXY} \
+--build-arg HTTPS_PROXY=${HTTPS_PROXY} \
+--build-arg NO_PROXY=${NO_PROXY}"
 
     docker build --no-cache $BUILD_ARGS -t scanfleet-base -f Dockerfile.base .
     docker build --no-cache $BUILD_ARGS -t scanfleet-prefect-server -f Dockerfile.prefect-server .
