@@ -10,16 +10,19 @@ ARG HOST_UID
 ARG HOST_GID
 ARG TOOLS_TARBALL_URL
 
-ARG NVM_VERSION
-ARG NODE_VERSION
-ARG NVM_NODEJS_ORG_MIRROR
-ARG NVM_PRIVATE_REPO
+# Required arguments
 ARG NPM_REGISTRY
-ARG SASS_BINARY
-ARG HTTP_PROXY
-ARG HTTPS_PROXY
-ARG NO_PROXY
-ARG SASS_BINARY
+ARG NODE_VERSION
+
+# Optional arguments with empty defaults
+ARG NVM_NODEJS_ORG_MIRROR=""
+ARG SASS_BINARY=""
+ARG HTTP_PROXY=""
+ARG HTTPS_PROXY=""
+ARG NO_PROXY=""
+ARG NPM_STRICT_SSL=""
+ARG NPM_CAFILE=""
+
 
 ENV TRIVY_CACHE_DIR=$PREFECT_HOME/.cache/trivy
 ENV GRYPE_DB_CACHE_DIR=$PREFECT_HOME/.cache/grype/db
@@ -57,13 +60,16 @@ RUN mkdir -p ${NVM_DIR} && \
     rm -rf /tmp/nvm-temp /tmp/nvm.zip
 
 RUN echo "Using Node mirror: ${NVM_NODEJS_ORG_MIRROR}" \
+    # Validate required registry
+    && { [ -n "${NPM_REGISTRY}" ] || { echo "FATAL: NPM_REGISTRY must be set"; exit 1; }; } \
     && . "${NVM_DIR}/nvm.sh" \
     && nvm install "${NODE_VERSION}" \
     && nvm alias default "${NODE_VERSION}" \
-    && { [ -n "${NPM_REGISTRY}" ] || (echo "Error: NPM_REGISTRY must be set" && exit 1); } \
+    && nvm use default \
+    # Set registry
     && npm config set registry "${NPM_REGISTRY}" \
     && echo "npm registry: $(npm config get registry)" \
-    # Set optional configurations \
+    # Optional configurations (only set if provided)
     && { \
         [ -n "${SASS_BINARY}" ] && npm config set sass_binary "${SASS_BINARY}"; \
         [ -n "${NPM_STRICT_SSL}" ] && npm config set strict-ssl "${NPM_STRICT_SSL}"; \
@@ -71,6 +77,7 @@ RUN echo "Using Node mirror: ${NVM_NODEJS_ORG_MIRROR}" \
         [ -n "${HTTPS_PROXY}" ] && npm config set https-proxy "${HTTPS_PROXY}"; \
         [ -n "${HTTP_PROXY}" ] && npm config set proxy "${HTTP_PROXY}"; \
         [ -n "${NO_PROXY}" ] && npm config set no-proxy "${NO_PROXY}"; \
+        true; \
     } \
     && npm install -g yarn \
     && echo "Versions:" \
