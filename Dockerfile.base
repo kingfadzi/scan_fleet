@@ -30,11 +30,29 @@ ENV PATH=$NVM_DIR:$PATH
 
 RUN   dnf install -y unzip
 
+RUN wget --progress=dot:giga \
+        "${NVM_PRIVATE_REPO}${NVM_VERSION}.zip" \
+        -O /tmp/nvm.zip \
+    || { \
+        echo "NVM download failed from ${NVM_PRIVATE_REPO}${NVM_VERSION}.zip"; \
+        exit 1; \
+    }
+
 RUN mkdir -p ${NVM_DIR} && \
     unzip /tmp/nvm.zip -d /tmp/nvm-temp && \
     echo "Contents of /tmp/nvm-temp:" && ls -la /tmp/nvm-temp && \
     cp -r /tmp/nvm-temp/* ${NVM_DIR}/ && \
     rm -rf /tmp/nvm-temp /tmp/nvm.zip
+
+RUN bash -c " \
+    source ${NVM_DIR}/nvm.sh && \
+    nvm install ${NODE_VERSION} && \
+    nvm alias default ${NODE_VERSION} && \
+    nvm use default && \
+    npm install -g yarn && \
+    node -v && npm -v && yarn -v"
+
+ENV PATH="${NVM_DIR}/versions/node/v${NODE_VERSION}/bin:${PATH}"
 
 RUN echo "[global]" > /etc/pip.conf && \
     if [ -n "$GLOBAL_INDEX" ]; then \
@@ -176,29 +194,7 @@ RUN mkdir -p /home/prefect/.pip && \
       echo -e "[global]\nindex-url = ${GLOBAL_INDEX_URL}" > /home/prefect/.pip/pip.conf; \
     fi
 
-RUN wget --progress=dot:giga \
-        "${NVM_PRIVATE_REPO}${NVM_VERSION}.zip" \
-        -O /tmp/nvm.zip \
-    || { \
-        echo "NVM download failed from ${NVM_PRIVATE_REPO}${NVM_VERSION}.zip"; \
-        exit 1; \
-    }
 
-RUN mkdir -p ${NVM_DIR} && \
-    unzip /tmp/nvm.zip -d /tmp/nvm-temp && \
-    echo "Contents of /tmp/nvm-temp:" && ls -la /tmp/nvm-temp && \
-    cp -r /tmp/nvm-temp/* ${NVM_DIR}/ && \
-    rm -rf /tmp/nvm-temp /tmp/nvm.zip
-
-RUN bash -c " \
-    source ${NVM_DIR}/nvm.sh && \
-    nvm install ${NODE_VERSION} && \
-    nvm alias default ${NODE_VERSION} && \
-    nvm use default && \
-    npm install -g yarn && \
-    node -v && npm -v && yarn -v"
-
-ENV PATH="${NVM_DIR}/versions/node/v${NODE_VERSION}/bin:${PATH}"
 
 USER prefect
 
