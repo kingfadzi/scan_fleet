@@ -33,6 +33,7 @@ ENV GRYPE_DB_AUTO_UPDATE=false
 ENV GRYPE_DB_VALIDATE_AGE=false
 ENV SYFT_CHECK_FOR_APP_UPDATE=false
 ENV XEOL_DB_AUTO_UPDATE=false
+ENV SASS_BINARY_SITE=$SASS_BINARY
 
 ENV NVM_DIR=/usr/local/nvm
 ENV PATH=$NVM_DIR:$PATH
@@ -61,24 +62,24 @@ RUN mkdir -p ${NVM_DIR} && \
     done && \
     rm -rf /tmp/nvm-temp /tmp/nvm.zip
 
+COPY tls-ca-bundle.pem /usr/local/share/ca-certificates/ 2>/dev/null || true
+
 RUN echo "Using Node mirror: ${NVM_NODEJS_ORG_MIRROR}" \
-    # Validate required registry
     && { [ -n "${NPM_REGISTRY}" ] || { echo "FATAL: NPM_REGISTRY must be set"; exit 1; }; } \
     && . "${NVM_DIR}/nvm.sh" \
     && nvm install "${NODE_VERSION}" \
     && nvm alias default "${NODE_VERSION}" \
     && nvm use default \
-    # Set registry
     && npm config set registry "${NPM_REGISTRY}" \
     && echo "npm registry: $(npm config get registry)" \
-    # Optional configurations (only set if provided)
     && { \
-        [ -n "${SASS_BINARY}" ] && npm config set sass_binary "${SASS_BINARY}"; \
+        # [ -n "${SASS_BINARY}" ] && npm config set sass_binary "${SASS_BINARY}"; \
         [ -n "${NPM_STRICT_SSL}" ] && npm config set strict-ssl "${NPM_STRICT_SSL}"; \
-        [ -n "${NPM_CAFILE}" ] && npm config set cafile "${NPM_CAFILE}"; \
+        { [ -n "${NPM_CAFILE}" ] && npm config set cafile "${NPM_CAFILE}"; } || \
+        { [ -f "/usr/local/share/ca-certificates/tls-ca-bundle.pem" ] && npm config set cafile "/usr/local/share/ca-certificates/tls-ca-bundle.pem"; }; \
         [ -n "${HTTPS_PROXY}" ] && npm config set https-proxy "${HTTPS_PROXY}"; \
         [ -n "${HTTP_PROXY}" ] && npm config set proxy "${HTTP_PROXY}"; \
-        [ -n "${NO_PROXY}" ] && npm config set no-proxy "${NO_PROXY}"; \
+        [ -n "${NO_PROXY}" ] && npm config set noproxy "${NO_PROXY}"; \
         true; \
     } \
     && npm install -g yarn \
