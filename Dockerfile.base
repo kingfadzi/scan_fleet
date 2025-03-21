@@ -42,7 +42,13 @@ RUN wget --progress=dot:giga \
 RUN mkdir -p ${NVM_DIR} && \
     unzip /tmp/nvm.zip -d /tmp/nvm-temp && \
     echo "Contents of /tmp/nvm-temp:" && ls -la /tmp/nvm-temp && \
-    cp -r /tmp/nvm-temp/* ${NVM_DIR}/ && \
+    for item in /tmp/nvm-temp/*; do \
+        if [ -d "$item" ]; then \
+            cp -r "$item"/* ${NVM_DIR}/; \
+        else \
+            cp "$item" ${NVM_DIR}/; \
+        fi; \
+    done && \
     rm -rf /tmp/nvm-temp /tmp/nvm.zip
 
 RUN bash -c " \
