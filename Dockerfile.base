@@ -8,7 +8,6 @@ ARG GLOBAL_INDEX
 ARG GLOBAL_INDEX_URL
 ARG HOST_UID=1000
 ARG HOST_GID=1000
-ARG GRADLE_DISTRIBUTIONS_BASE_URL
 ARG TOOLS_TARBALL_URL
 
 ARG NVM_VERSION=0.39.1
@@ -16,8 +15,6 @@ ARG NODE_VERSION=22.12.0
 ARG NVM_NODEJS_ORG_MIRROR=https://nodejs.org/dist
 ARG NVM_PRIVATE_REPO=https://github.com/nvm-sh/nvm/archive/refs/tags/v
 
-ENV DEFAULT_GRADLE_VERSION=8.12
-ENV GRADLE_VERSIONS="4.10.3 5.6.4 6.9.4 7.6.1 8.8 8.12"
 ENV TRIVY_CACHE_DIR=$PREFECT_HOME/.cache/trivy
 ENV GRYPE_DB_CACHE_DIR=$PREFECT_HOME/.cache/grype/db
 ENV XEOL_DB_CACHE_DIR=$PREFECT_HOME/.cache/xeol/db
@@ -25,6 +22,7 @@ ENV GRYPE_DB_AUTO_UPDATE=false
 ENV GRYPE_DB_VALIDATE_AGE=false
 ENV SYFT_CHECK_FOR_APP_UPDATE=false
 ENV XEOL_DB_AUTO_UPDATE=false
+ENV NVM_NODEJS_ORG_MIRROR="$NVM_NODEJS_ORG_MIRROR"
 
 ENV NVM_DIR=/usr/local/nvm
 ENV PATH=$NVM_DIR:$PATH
@@ -87,6 +85,7 @@ RUN alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
       pipreqs \
       lxml \
       pip-tools \
+      griffe==1.6.0 \
       sqlalchemy
 
 # Upgrade pip and install Prefect
@@ -100,39 +99,13 @@ RUN mkdir -p /usr/local/lib/python3.11/site-packages/prefect/server/ui_build && 
     chmod -R 777 /usr/local/lib/python3.11/site-packages/prefect/server/
 
 RUN dnf install -y \
-      java-1.8.0-openjdk-devel \
-      java-11-openjdk-devel \
-      java-17-openjdk-devel \
       java-21-openjdk-devel && \
     dnf clean all
 
-RUN alternatives --install /usr/bin/java java /usr/lib/jvm/java-1.8.0/bin/java 1080 && \
-    alternatives --install /usr/bin/java java /usr/lib/jvm/java-11/bin/java 1110 && \
-    alternatives --install /usr/bin/java java /usr/lib/jvm/java-17/bin/java 1170 && \
-    alternatives --install /usr/bin/java java /usr/lib/jvm/java-21/bin/java 1210 && \
-    alternatives --set java /usr/lib/jvm/java-17/bin/java
+RUN alternatives --set java /usr/lib/jvm/java-21/bin/java
 
-ENV JAVA_8_HOME="/usr/lib/jvm/java-1.8.0"
-ENV JAVA_11_HOME="/usr/lib/jvm/java-11"
-ENV JAVA_17_HOME="/usr/lib/jvm/java-17"
-ENV JAVA_21_HOME="/usr/lib/jvm/java-21"
-ENV JAVA_HOME="${JAVA_17_HOME}"
+ENV JAVA_HOME="/usr/lib/jvm/java-21"
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
-
-# Install dependencies, download and install Gradle versions
-RUN set -e && \
-    dnf install -y unzip wget && \
-    mkdir -p /opt/gradle && \
-    for VERSION in $GRADLE_VERSIONS; do \
-        FULL_URL="${GRADLE_DISTRIBUTIONS_BASE_URL}gradle-${VERSION}-bin.zip"; \
-        echo "Installing Gradle $VERSION from $FULL_URL..."; \
-        wget "$FULL_URL" -O /tmp/gradle-${VERSION}-bin.zip || { echo "Error: Failed to download Gradle $VERSION" >&2; exit 1; }; \
-        unzip -qo /tmp/gradle-${VERSION}-bin.zip -d /opt/gradle || { echo "Error: Failed to unzip Gradle $VERSION" >&2; exit 1; }; \
-        rm /tmp/gradle-${VERSION}-bin.zip; \
-        ln -s "/opt/gradle/gradle-${VERSION}/bin/gradle" "/usr/local/bin/gradle-${VERSION}"; \
-    done && \
-    dnf clean all
-
 
 
 RUN mkdir -p \
@@ -143,9 +116,6 @@ RUN mkdir -p \
       /home/prefect/.ssh \
       /home/prefect/.m2 \
       /home/prefect/.gradle
-
-ENV GRADLE_HOME="/opt/gradle/gradle-${DEFAULT_GRADLE_VERSION}"
-ENV PATH="$GRADLE_HOME/bin:$PATH"
 
 RUN existing_group=$(getent group ${HOST_GID} | cut -d: -f1) && \
     if [ -z "$existing_group" ]; then \
