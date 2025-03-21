@@ -13,6 +13,7 @@ ARG TOOLS_TARBALL_URL
 # Required arguments
 ARG NPM_REGISTRY
 ARG NODE_VERSION
+ARG NVM_PRIVATE_REPO
 
 # Optional arguments with empty defaults
 ARG NVM_NODEJS_ORG_MIRROR=""
