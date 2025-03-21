@@ -27,6 +27,12 @@ ENV NVM_NODEJS_ORG_MIRROR="$NVM_NODEJS_ORG_MIRROR"
 ENV NVM_DIR=/usr/local/nvm
 ENV PATH=$NVM_DIR:$PATH
 
+RUN mkdir -p ${NVM_DIR} && \
+    unzip /tmp/nvm.zip -d /tmp/nvm-temp && \
+    echo "Contents of /tmp/nvm-temp:" && ls -la /tmp/nvm-temp && \
+    cp -r /tmp/nvm-temp/* ${NVM_DIR}/ && \
+    rm -rf /tmp/nvm-temp /tmp/nvm.zip
+
 RUN echo "[global]" > /etc/pip.conf && \
     if [ -n "$GLOBAL_INDEX" ]; then \
       echo "index = ${GLOBAL_INDEX}" >> /etc/pip.conf; \
@@ -176,10 +182,10 @@ RUN wget --progress=dot:giga \
     }
 
 RUN mkdir -p ${NVM_DIR} && \
-    unzip /tmp/nvm.zip -d /tmp && \
-    mv /tmp/nvm-* /tmp/nvm-extracted && \
-    cp -r /tmp/nvm-extracted/* ${NVM_DIR}/ && \
-    rm -rf /tmp/nvm-extracted /tmp/nvm.zip
+    unzip /tmp/nvm.zip -d /tmp/nvm-temp && \
+    echo "Contents of /tmp/nvm-temp:" && ls -la /tmp/nvm-temp && \
+    cp -r /tmp/nvm-temp/* ${NVM_DIR}/ && \
+    rm -rf /tmp/nvm-temp /tmp/nvm.zip
 
 RUN bash -c " \
     source ${NVM_DIR}/nvm.sh && \
