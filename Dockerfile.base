@@ -29,6 +29,7 @@ ENV PATH=$NVM_DIR:$PATH
 
 
 RUN   dnf install -y unzip
+RUN   dnf install -y wget
 
 RUN wget --progress=dot:giga \
         "${NVM_PRIVATE_REPO}${NVM_VERSION}.zip" \
