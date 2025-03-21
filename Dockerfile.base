@@ -40,6 +40,16 @@ RUN dnf install golang -y
 
 RUN dnf group install -y "Development Tools"
 
+# Install Java 21 and clean up
+RUN dnf install -y java-21-openjdk-devel && \
+    dnf clean all && \
+    alternatives --install /usr/bin/java java /usr/lib/jvm/java-21/bin/java 1 && \
+    alternatives --set java /usr/lib/jvm/java-21/bin/java
+
+# Set JAVA_HOME and update PATH
+ENV JAVA_HOME=/usr/lib/jvm/java-21
+ENV PATH="${JAVA_HOME}/bin:$PATH"
+
 RUN dnf -y update && \
     dnf module reset -y python36 && \
     dnf install -y \
@@ -88,7 +98,7 @@ RUN alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
       griffe==1.6.0 \
       sqlalchemy
 
-# Upgrade pip and install Prefect
+    # Upgrade pip and install Prefect
 RUN python3 -m ensurepip && \
     python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
     python3 -m pip install --no-cache-dir "prefect==$PREFECT_VERSION"
@@ -97,15 +107,6 @@ RUN python3 -m ensurepip && \
 RUN mkdir -p /usr/local/lib/python3.11/site-packages/prefect/server/ui_build && \
     chown -R ${HOST_UID}:${HOST_GID} /usr/local/lib/python3.11/site-packages/prefect/server/ && \
     chmod -R 777 /usr/local/lib/python3.11/site-packages/prefect/server/
-
-# Install Java 21 and clean up
-RUN dnf install -y java-21-openjdk-devel && \
-    dnf clean all && \
-    alternatives --set java /usr/lib/jvm/java-21/bin/java
-
-# Set JAVA_HOME and update PATH
-ENV JAVA_HOME=/usr/lib/jvm/java-21
-ENV PATH=${JAVA_HOME}/bin:$PATH
 
 
 RUN mkdir -p \
