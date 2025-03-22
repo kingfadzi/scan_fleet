@@ -1,5 +1,9 @@
 FROM scanfleet-base:latest
 
+USER prefect
+
+WORKDIR $PREFECT_HOME
+
 # Set working directory
 WORKDIR /home/prefect
 

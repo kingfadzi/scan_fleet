@@ -140,6 +140,7 @@ build_all() {
 --build-arg SASS_BINARY=${SASS_BINARY} \
 --build-arg HTTP_PROXY=${HTTP_PROXY} \
 --build-arg HTTPS_PROXY=${HTTPS_PROXY} \
+--build-arg NPM_STRICT_SSL=${NPM_STRICT_SSL} \
 --build-arg NO_PROXY=${NO_PROXY}"
 
     docker build --no-cache $BUILD_ARGS -t scanfleet-base -f Dockerfile.base .

@@ -34,6 +34,7 @@ ENV GRYPE_DB_VALIDATE_AGE=false
 ENV SYFT_CHECK_FOR_APP_UPDATE=false
 ENV XEOL_DB_AUTO_UPDATE=false
 ENV SASS_BINARY_SITE=$SASS_BINARY
+ENV NPM_STRICT_SSL=false
 
 ENV NVM_DIR=/usr/local/nvm
 ENV PATH=$NVM_DIR:$PATH
@@ -65,6 +66,8 @@ RUN mkdir -p ${NVM_DIR} && \
 COPY tls-ca-bundle.pem /usr/local/share/ca-certificates/ 2>/dev/null || true
 
 RUN echo "Using Node mirror: ${NVM_NODEJS_ORG_MIRROR}" \
+    # Create certs directory if it doesn't exist and validate registry
+    && mkdir -p /usr/local/share/ca-certificates/ \
     && { [ -n "${NPM_REGISTRY}" ] || { echo "FATAL: NPM_REGISTRY must be set"; exit 1; }; } \
     && . "${NVM_DIR}/nvm.sh" \
     && nvm install "${NODE_VERSION}" \
@@ -73,8 +76,9 @@ RUN echo "Using Node mirror: ${NVM_NODEJS_ORG_MIRROR}" \
     && npm config set registry "${NPM_REGISTRY}" \
     && echo "npm registry: $(npm config get registry)" \
     && { \
-        # [ -n "${SASS_BINARY}" ] && npm config set sass_binary "${SASS_BINARY}"; \
+        [ -n "${SASS_BINARY}" ] && npm config set sass_binary "${SASS_BINARY}"; \
         [ -n "${NPM_STRICT_SSL}" ] && npm config set strict-ssl "${NPM_STRICT_SSL}"; \
+        # CA config with directory verification \
         { [ -n "${NPM_CAFILE}" ] && npm config set cafile "${NPM_CAFILE}"; } || \
         { [ -f "/usr/local/share/ca-certificates/tls-ca-bundle.pem" ] && npm config set cafile "/usr/local/share/ca-certificates/tls-ca-bundle.pem"; }; \
         [ -n "${HTTPS_PROXY}" ] && npm config set https-proxy "${HTTPS_PROXY}"; \
@@ -85,6 +89,7 @@ RUN echo "Using Node mirror: ${NVM_NODEJS_ORG_MIRROR}" \
     && npm install -g yarn \
     && echo "Versions:" \
     && node -v && npm -v && yarn -v
+
 
 
 ENV PATH="${NVM_DIR}/versions/node/v${NODE_VERSION}/bin:${PATH}"
@@ -228,11 +233,5 @@ RUN mkdir -p /home/prefect/.pip && \
     else \
       echo -e "[global]\nindex-url = ${GLOBAL_INDEX_URL}" > /home/prefect/.pip/pip.conf; \
     fi
-
-
-
-USER prefect
-
-WORKDIR $PREFECT_HOME
 
 CMD ["/bin/bash"]

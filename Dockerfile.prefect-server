@@ -5,6 +5,10 @@ RUN mkdir -p /home/prefect/.prefect && \
 chown -R prefect:prefect /home/prefect/.prefect && \
 chmod -R 777 /home/prefect/.prefect
 
+USER prefect
+
+WORKDIR $PREFECT_HOME
+
 # Set working directory
 WORKDIR /home/prefect
 
