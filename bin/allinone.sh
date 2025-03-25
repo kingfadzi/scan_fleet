@@ -4,18 +4,34 @@ set -e
 usage() {
     echo "Usage:"
     echo "  $0 build <env>"
-    echo "  $0 start <env>"
-    echo "  $0 stop <env>"
-    echo "  $0 restart <env>"
+    echo "  $0 server <start|stop|restart> <env>"
+    echo "  $0 worker <start|stop|restart> <env>"
+    echo "  $0 all <start|stop|restart> <env>"
     exit 1
 }
 
-if [ $# -lt 2 ]; then
-    usage
+# Parse arguments: build expects 2 args, others expect 3.
+if [ "$1" = "build" ]; then
+    if [ $# -ne 2 ]; then
+        usage
+    fi
+    COMMAND="build"
+    ENV_NAME=$2
+else
+    if [ $# -ne 3 ]; then
+        usage
+    fi
+    TARGET=$1   # "server", "worker", or "all"
+    ACTION=$2   # "start", "stop", or "restart"
+    ENV_NAME=$3
+    if [ "$TARGET" != "server" ] && [ "$TARGET" != "worker" ] && [ "$TARGET" != "all" ]; then
+        usage
+    fi
+    if [[ "$ACTION" != "start" && "$ACTION" != "stop" && "$ACTION" != "restart" ]]; then
+        usage
+    fi
 fi
 
-COMMAND=$1
-ENV_NAME=$2
 ENV_FILE=".env-${ENV_NAME}"
 
 if [ ! -f "$ENV_FILE" ]; then
@@ -50,59 +66,86 @@ build_all() {
     echo "All images built successfully!"
 }
 
-start_all() {
-    #echo "Starting Prefect Server..."
-    #docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml up -d
+# Server control functions
+start_server() {
+    echo "Starting Prefect Server..."
+    docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml up -d
 
     if ! docker network ls | grep -q "scan_fleet_scannet"; then
         echo "Creating Docker network: scan_fleet_scannet"
         docker network create scan_fleet_scannet
     fi
+}
 
+stop_server() {
+    echo "Stopping Prefect Server..."
+    docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml down
+}
+
+restart_server() {
+    stop_server
+    start_server
+}
+
+# Worker control functions
+start_workers() {
     if [ -z "$WORKER_POOLS" ]; then
         echo "WARNING: WORKER_POOLS variable not defined in $ENV_FILE. No workers to start."
-    else
-        echo "Starting Prefect Workers..."
-        IFS=',' read -ra POOLS <<< "$WORKER_POOLS"
-        for pool_entry in "${POOLS[@]}"; do
-            IFS=':' read -r pool_name instance_count <<< "$pool_entry"
-            if [ -z "$instance_count" ]; then
-                instance_count=1
-            fi
-            echo "Starting $instance_count worker(s) for pool '$pool_name'..."
-            for (( i=1; i<=instance_count; i++ )); do
-                PROJECT_NAME="prefect-worker-${pool_name}-${i}"
-                echo "Starting worker instance $i for pool '$pool_name' (Project: $PROJECT_NAME)..."
-                env WORK_POOL="$pool_name" INSTANCE="$i" \
-                  docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml up -d
-            done
-        done
+        return
     fi
-    echo "All services started successfully!"
+
+    echo "Starting Prefect Workers..."
+    IFS=',' read -ra POOLS <<< "$WORKER_POOLS"
+    for pool_entry in "${POOLS[@]}"; do
+        IFS=':' read -r pool_name instance_count <<< "$pool_entry"
+        if [ -z "$instance_count" ]; then
+            instance_count=1
+        fi
+        echo "Starting $instance_count worker(s) for pool '$pool_name'..."
+        for (( i=1; i<=instance_count; i++ )); do
+            PROJECT_NAME="prefect-worker-${pool_name}-${i}"
+            echo "Starting worker instance $i for pool '$pool_name' (Project: $PROJECT_NAME)..."
+            env WORK_POOL="$pool_name" INSTANCE="$i" \
+              docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml up -d
+        done
+    done
+}
+
+stop_workers() {
+    if [ -z "$WORKER_POOLS" ]; then
+        echo "No workers defined to stop."
+        return
+    fi
+
+    IFS=',' read -ra POOLS <<< "$WORKER_POOLS"
+    for pool_entry in "${POOLS[@]}"; do
+        IFS=':' read -r pool_name instance_count <<< "$pool_entry"
+        if [ -z "$instance_count" ]; then
+            instance_count=1
+        fi
+        for (( i=1; i<=instance_count; i++ )); do
+            PROJECT_NAME="prefect-worker-${pool_name}-${i}"
+            echo "Stopping worker instance $i for pool '$pool_name' (Project: $PROJECT_NAME)..."
+            env WORK_POOL="$pool_name" INSTANCE="$i" \
+              docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml down
+        done
+    done
+}
+
+restart_workers() {
+    stop_workers
+    start_workers
+}
+
+# Combined control functions for both server and workers
+start_all() {
+    start_server
+    start_workers
 }
 
 stop_all() {
-    echo "Stopping Prefect Server..."
-    docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml down
-
-    if [ -z "$WORKER_POOLS" ]; then
-        echo "No workers defined to stop."
-    else
-        IFS=',' read -ra POOLS <<< "$WORKER_POOLS"
-        for pool_entry in "${POOLS[@]}"; do
-            IFS=':' read -r pool_name instance_count <<< "$pool_entry"
-            if [ -z "$instance_count" ]; then
-                instance_count=1
-            fi
-            for (( i=1; i<=instance_count; i++ )); do
-                PROJECT_NAME="prefect-worker-${pool_name}-${i}"
-                echo "Stopping worker instance $i for pool '$pool_name' (Project: $PROJECT_NAME)..."
-                env WORK_POOL="$pool_name" INSTANCE="$i" \
-                  docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml down
-            done
-        done
-    fi
-    echo "All services stopped."
+    stop_server
+    stop_workers
 }
 
 restart_all() {
@@ -110,21 +153,30 @@ restart_all() {
     start_all
 }
 
-
-case "$COMMAND" in
-    build)
-        build_all
-        ;;
-    start)
-        start_all
-        ;;
-    stop)
-        stop_all
-        ;;
-    restart)
-        restart_all
-        ;;
-    *)
-        usage
-        ;;
-esac
+# Main command execution
+if [ "$COMMAND" = "build" ]; then
+    build_all
+elif [ "$TARGET" = "server" ]; then
+    case "$ACTION" in
+        start)   start_server ;;
+        stop)    stop_server ;;
+        restart) restart_server ;;
+        *)       usage ;;
+    esac
+elif [ "$TARGET" = "worker" ]; then
+    case "$ACTION" in
+        start)   start_workers ;;
+        stop)    stop_workers ;;
+        restart) restart_workers ;;
+        *)       usage ;;
+    esac
+elif [ "$TARGET" = "all" ]; then
+    case "$ACTION" in
+        start)   start_all ;;
+        stop)    stop_all ;;
+        restart) restart_all ;;
+        *)       usage ;;
+    esac
+else
+    usage
+fi
