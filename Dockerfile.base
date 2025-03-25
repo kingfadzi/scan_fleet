@@ -63,7 +63,9 @@ RUN mkdir -p ${NVM_DIR} && \
     done && \
     rm -rf /tmp/nvm-temp /tmp/nvm.zip
 
-COPY tls-ca-bundle.pem /usr/local/share/ca-certificates/ 2>/dev/null || true
+# COPY tls-ca-bundle.pem /usr/local/share/ca-certificates/ 2>/dev/null || true
+
+RUN [ -f tls-ca-bundle.pem ] && cp tls-ca-bundle.pem /usr/local/share/ca-certificates/ || true
 
 RUN echo "Using Node mirror: ${NVM_NODEJS_ORG_MIRROR}" \
     # Create certs directory if it doesn't exist and validate registry
