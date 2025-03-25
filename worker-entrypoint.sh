@@ -1,8 +1,24 @@
 #!/bin/bash
 
-# Ensure WORK_POOL is set
+# Ensure required environment variables are set
+missing=false
+
 if [ -z "$WORK_POOL" ]; then
   echo "ERROR: WORK_POOL is not set!"
+  missing=true
+fi
+
+if [ -z "$WORKER_NAME" ]; then
+  echo "ERROR: WORKER_NAME is not set!"
+  missing=true
+fi
+
+if [ -z "$INSTANCE" ]; then
+  echo "ERROR: INSTANCE is not set!"
+  missing=true
+fi
+
+if [ "$missing" = true ]; then
   exit 1
 fi
 
@@ -36,6 +52,8 @@ fi
     chown prefect:prefect /home/prefect/.ssh
 }
 
-echo "Starting Prefect Worker in pool: $WORK_POOL"
+# Use WORKER_NAME and INSTANCE to create a unique identifier
+UNIQUE_NAME="${WORKER_NAME}-${INSTANCE}"
+echo "Starting Prefect Worker in pool: $WORK_POOL with name: $UNIQUE_NAME"
 
-exec prefect worker start -p "$WORK_POOL"
+exec prefect worker start -p "$WORK_POOL" --name "$UNIQUE_NAME"
