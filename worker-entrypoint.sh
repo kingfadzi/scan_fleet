@@ -3,6 +3,23 @@
 # Ensure required environment variables are set
 missing=false
 
+# Load the environment file
+if [ -z "$ENV_FILE" ]; then
+  echo "ERROR: ENV_FILE is not set!"
+  missing=true
+fi
+
+if [ -f "$ENV_FILE" ]; then
+  echo "Loading environment file: $ENV_FILE"
+  set -a
+  source "$ENV_FILE"
+  set +a
+else
+  echo "ERROR: Environment file '$ENV_FILE' not found!"
+  missing=true
+fi
+
+# Check for required variables
 if [ -z "$WORK_POOL" ]; then
   echo "ERROR: WORK_POOL is not set!"
   missing=true
@@ -22,6 +39,7 @@ if [ "$missing" = true ]; then
   exit 1
 fi
 
+# SSH Setup
 [ -f /tmp/keys/id_ed25519 ] && {
     mkdir -p /home/prefect/.ssh
     cp /tmp/keys/id_ed25519 /home/prefect/.ssh/
@@ -52,8 +70,9 @@ fi
     chown prefect:prefect /home/prefect/.ssh
 }
 
-# Use WORKER_NAME and INSTANCE to create a unique identifier
+# Create unique worker name
 UNIQUE_NAME="${WORKER_NAME}-${INSTANCE}"
+
 echo "Starting Prefect Worker in pool: $WORK_POOL with name: $UNIQUE_NAME"
 
 exec prefect worker start -p "$WORK_POOL" --name "$UNIQUE_NAME"
