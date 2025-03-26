@@ -50,6 +50,7 @@ services:
       DEFAULT_PROCESS_TIMEOUT: ${DEFAULT_PROCESS_TIMEOUT}
       PREFECT_LOGGING_LEVEL: DEBUG
       PREFECT_LOGGING_PERSISTENCE: false
+      WORKER_NAME: ${WORKER_NAME}
     restart: always
     logging:
       driver: "json-file"
