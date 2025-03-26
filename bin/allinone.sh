@@ -109,8 +109,8 @@ start_workers() {
         echo "Starting $instance_count worker(s) for pool '$pool_name'..."
         for (( i=1; i<=instance_count; i++ )); do
             PROJECT_NAME="prefect-worker-${pool_name}-${i}"
-            echo "Starting worker instance $i for pool '$pool_name' (Project: $PROJECT_NAME)..."
-            env WORK_POOL="$pool_name" INSTANCE="$i" \
+            echo "Starting worker instance $i for pool '$pool_name' with worker name '${ENV_NAME}-${i}' (Project: $PROJECT_NAME)..."
+            env WORK_POOL="$pool_name" WORKER_NAME="$ENV_NAME" INSTANCE="$i" \
               docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml up -d
         done
     done
