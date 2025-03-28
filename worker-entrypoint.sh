@@ -48,4 +48,9 @@ fi
 UNIQUE_NAME="${WORKER_NAME}-${INSTANCE}"
 echo "Starting Prefect Worker in pool: ${WORK_POOL} with name: ${UNIQUE_NAME}"
 
-exec prefect worker start -p "$WORK_POOL" --name "$UNIQUE_NAME"
+# Create/update work pool first
+prefect work-pool create --type process "$WORK_POOL" || true
+prefect work-pool update "$WORK_POOL" --concurrency-limit 2
+
+# Then start worker
+exec prefect worker start -p "$WORK_POOL" --name "$UNIQUE_NAME" --limit 10
