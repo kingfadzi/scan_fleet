@@ -79,6 +79,15 @@ build_all() {
 
 # Server control functions
 start_server() {
+    # Check Prefect CLI requirement before starting services
+    if [ -n "$WORKER_POOLS" ]; then
+        if ! command -v prefect &> /dev/null; then
+            echo "ERROR: Prefect CLI is required for work pool creation but not found."
+            echo "Please install with: pip install prefect"
+            exit 1
+        fi
+    fi
+
     echo "Starting Prefect Server..."
     docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml up -d
 
@@ -87,7 +96,7 @@ start_server() {
         docker network create scan_fleet_scannet
     fi
 
-    # Create/update each work pool defined in WORKER_POOLS after the server has started
+    # Create/update work pools after server starts
     if [ -n "$WORKER_POOLS" ]; then
         IFS=',' read -ra POOLS <<< "$WORKER_POOLS"
         for pool_entry in "${POOLS[@]}"; do
