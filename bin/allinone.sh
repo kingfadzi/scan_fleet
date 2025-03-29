@@ -86,6 +86,9 @@ start_server() {
             echo "Please install with: pip install prefect"
             exit 1
         fi
+        # Set proper Prefect home directory
+        export PREFECT_HOME="${HOME}/.prefect"
+        mkdir -p "${PREFECT_HOME}"
     fi
 
     echo "Starting Prefect Server..."
@@ -98,6 +101,35 @@ start_server() {
 
     # Create/update work pools after server starts
     if [ -n "$WORKER_POOLS" ]; then
+        # Use PREFECT_API_URL from .env file
+        if [ -z "$PREFECT_API_URL" ]; then
+            echo "ERROR: PREFECT_API_URL not defined in $ENV_FILE"
+            exit 1
+        fi
+
+        # Wait for server to be ready using .env value
+        echo "Waiting for Prefect server to become available..."
+        MAX_RETRIES=10
+        RETRY_INTERVAL=5
+        HEALTH_ENDPOINT="${PREFECT_API_URL}/health"
+
+        for ((i=1; i<=MAX_RETRIES; i++)); do
+            if curl --silent --output /dev/null --fail "$HEALTH_ENDPOINT"; then
+                echo "Prefect server is ready!"
+                break
+            else
+                echo "Server not ready (attempt $i/$MAX_RETRIES), retrying in ${RETRY_INTERVAL}s..."
+                sleep ${RETRY_INTERVAL}
+            fi
+            
+            if [ "$i" -eq "$MAX_RETRIES" ]; then
+                echo "ERROR: Prefect server did not become available after ${MAX_RETRIES} attempts"
+                echo "Check if PREFECT_API_URL is correctly configured in $ENV_FILE"
+                echo "Current value: $PREFECT_API_URL"
+                exit 1
+            fi
+        done
+
         IFS=',' read -ra POOLS <<< "$WORKER_POOLS"
         for pool_entry in "${POOLS[@]}"; do
             IFS=':' read -r pool_name instance_count <<< "$pool_entry"
