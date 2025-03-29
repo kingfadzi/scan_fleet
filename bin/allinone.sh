@@ -107,46 +107,65 @@ start_server() {
             exit 1
         fi
 
-        # Wait for server to be ready using .env value
+        # Display connection info
+        echo "Connecting to Prefect API at: ${PREFECT_API_URL}"
+
+        # Wait for server to be ready
         echo "Waiting for Prefect server to become available..."
-        MAX_RETRIES=10
+        MAX_RETRIES=15
         RETRY_INTERVAL=5
         HEALTH_ENDPOINT="${PREFECT_API_URL}/health"
+        SUCCESS=0
 
         for ((i=1; i<=MAX_RETRIES; i++)); do
             if curl --silent --output /dev/null --fail "$HEALTH_ENDPOINT"; then
-                echo "Prefect server is ready!"
-                break
-            else
-                echo "Server not ready (attempt $i/$MAX_RETRIES), retrying in ${RETRY_INTERVAL}s..."
-                sleep ${RETRY_INTERVAL}
+                if curl --silent --fail "${PREFECT_API_URL%/api*}/version"; then
+                    SUCCESS=1
+                    break
+                else
+                    echo "Server partially ready but version endpoint not responding..."
+                fi
             fi
-            
-            if [ "$i" -eq "$MAX_RETRIES" ]; then
-                echo "ERROR: Prefect server did not become available after ${MAX_RETRIES} attempts"
-                echo "Check if PREFECT_API_URL is correctly configured in $ENV_FILE"
-                echo "Current value: $PREFECT_API_URL"
-                exit 1
-            fi
+            echo "Server not ready (attempt $i/$MAX_RETRIES), retrying in ${RETRY_INTERVAL}s..."
+            sleep ${RETRY_INTERVAL}
         done
+
+        if [ $SUCCESS -eq 0 ]; then
+            echo "ERROR: Server did not become fully ready after ${MAX_RETRIES} attempts"
+            echo "Final check tried endpoints:"
+            echo "- Health: ${HEALTH_ENDPOINT}"
+            echo "- Version: ${PREFECT_API_URL%/api*}/version"
+            exit 1
+        fi
+
+        echo "Server connection established successfully!"
+        echo "API Version: $(curl --silent ${PREFECT_API_URL%/api*}/version)"
 
         IFS=',' read -ra POOLS <<< "$WORKER_POOLS"
         for pool_entry in "${POOLS[@]}"; do
             IFS=':' read -r pool_name instance_count <<< "$pool_entry"
-            echo "Creating/updating work pool: ${pool_name} with concurrency limit ${WORK_POOL_CONCURRENCY}"
-            
-            # Create or update work pool with idempotent command
-            if prefect work-pool ls | grep -q "${pool_name}"; then
-                echo "Pool ${pool_name} exists - updating..."
-                prefect work-pool update "${pool_name}" --concurrency-limit "${WORK_POOL_CONCURRENCY}"
+            echo "Processing work pool: ${pool_name}"
+
+            # Idempotent pool creation with overwrite
+            echo "Attempting to create/update pool '${pool_name}'..."
+            if prefect work-pool create --type process "${pool_name}" --overwrite 2>&1; then
+                echo "Pool base created/updated successfully"
             else
-                echo "Pool ${pool_name} does not exist - creating..."
-                prefect work-pool create --type process "${pool_name}"
-                prefect work-pool update "${pool_name}" --concurrency-limit "${WORK_POOL_CONCURRENCY}"
+                echo "Warning: Pool creation returned non-zero exit code (might already exist)"
+            fi
+
+            # Update concurrency limit
+            echo "Setting concurrency limit to ${WORK_POOL_CONCURRENCY}..."
+            if prefect work-pool update "${pool_name}" --concurrency-limit "${WORK_POOL_CONCURRENCY}" 2>&1; then
+                echo "Successfully updated ${pool_name} pool settings"
+            else
+                echo "ERROR: Failed to update work pool ${pool_name}"
+                echo "Check pool exists and CLI has proper permissions"
+                exit 1
             fi
         done
     else
-        echo "No WORKER_POOLS variable defined; skipping work pool creation/update."
+        echo "No WORKER_POOLS variable defined; skipping work pool setup."
     fi
 }
 
