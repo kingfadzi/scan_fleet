@@ -150,7 +150,7 @@ stop_workers() {
         for (( i=1; i<=instance_count; i++ )); do
             PROJECT_NAME="prefect-worker-${pool_name}-${i}"
             echo "Stopping worker instance $i for pool '$pool_name' (Project: $PROJECT_NAME)..."
-            env WORK_POOL="$pool_name" INSTANCE="$i" \
+            env WORK_POOL="$pool_name" WORKER_NAME="$ENV_NAME" INSTANCE="$i" \
               docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml down
         done
     done
