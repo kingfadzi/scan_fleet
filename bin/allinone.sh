@@ -134,8 +134,16 @@ start_server() {
         for pool_entry in "${POOLS[@]}"; do
             IFS=':' read -r pool_name instance_count <<< "$pool_entry"
             echo "Creating/updating work pool: ${pool_name} with concurrency limit ${WORK_POOL_CONCURRENCY}"
-            prefect work-pool create --type process "${pool_name}" || true
-            prefect work-pool update "${pool_name}" --concurrency-limit "${WORK_POOL_CONCURRENCY}"
+            
+            # Create or update work pool with idempotent command
+            if prefect work-pool ls | grep -q "${pool_name}"; then
+                echo "Pool ${pool_name} exists - updating..."
+                prefect work-pool update "${pool_name}" --concurrency-limit "${WORK_POOL_CONCURRENCY}"
+            else
+                echo "Pool ${pool_name} does not exist - creating..."
+                prefect work-pool create --type process "${pool_name}"
+                prefect work-pool update "${pool_name}" --concurrency-limit "${WORK_POOL_CONCURRENCY}"
+            fi
         done
     else
         echo "No WORKER_POOLS variable defined; skipping work pool creation/update."
