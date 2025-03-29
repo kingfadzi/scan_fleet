@@ -79,14 +79,12 @@ build_all() {
 
 # Server control functions
 start_server() {
-    # Check Prefect CLI requirement before starting services
+    # Check Prefect CLI requirement
     if [ -n "$WORKER_POOLS" ]; then
-        if ! command -v prefect &> /dev/null; then
-            echo "ERROR: Prefect CLI is required for work pool creation but not found."
-            echo "Please install with: pip install prefect"
+        if ! command -v prefect &>/dev/null; then
+            echo "ERROR: Prefect CLI required - install with: pip install prefect"
             exit 1
         fi
-        # Set proper Prefect home directory
         export PREFECT_HOME="${HOME}/.prefect"
         mkdir -p "${PREFECT_HOME}"
     fi
@@ -94,80 +92,46 @@ start_server() {
     echo "Starting Prefect Server..."
     docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml up -d
 
-    if ! docker network ls | grep -q "scan_fleet_scannet"; then
-        echo "Creating Docker network: scan_fleet_scannet"
-        docker network create scan_fleet_scannet
+    # Network setup
+    if ! docker network ls | grep -q scan_fleet_scannet; then
+        docker network create scan_fleet_scannet >/dev/null
     fi
 
-    # Create/update work pools after server starts
+    # Work pool management
     if [ -n "$WORKER_POOLS" ]; then
-        # Use PREFECT_API_URL from .env file
-        if [ -z "$PREFECT_API_URL" ]; then
-            echo "ERROR: PREFECT_API_URL not defined in $ENV_FILE"
-            exit 1
-        fi
-
-        # Display connection info
-        echo "Connecting to Prefect API at: ${PREFECT_API_URL}"
-
-        # Wait for server to be ready
-        echo "Waiting for Prefect server to become available..."
-        MAX_RETRIES=15
-        RETRY_INTERVAL=5
-        HEALTH_ENDPOINT="${PREFECT_API_URL}/health"
-        SUCCESS=0
-
-        for ((i=1; i<=MAX_RETRIES; i++)); do
-            if curl --silent --output /dev/null --fail "$HEALTH_ENDPOINT"; then
-                if curl --silent --fail "${PREFECT_API_URL%/api*}/version"; then
-                    SUCCESS=1
-                    break
-                else
-                    echo "Server partially ready but version endpoint not responding..."
-                fi
+        [ -z "$PREFECT_API_URL" ] && { echo "ERROR: PREFECT_API_URL undefined"; exit 1; }
+        
+        echo "Connecting to: ${PREFECT_API_URL}"
+        echo -n "Waiting for server "
+        
+        # Simplified readiness check
+        for _ in {1..15}; do
+            if curl --silent --fail --output /dev/null "${PREFECT_API_URL}/health"; then
+                echo " Ready!"
+                break
             fi
-            echo "Server not ready (attempt $i/$MAX_RETRIES), retrying in ${RETRY_INTERVAL}s..."
-            sleep ${RETRY_INTERVAL}
+            echo -n "."
+            sleep 2
         done
 
-        if [ $SUCCESS -eq 0 ]; then
-            echo "ERROR: Server did not become fully ready after ${MAX_RETRIES} attempts"
-            echo "Final check tried endpoints:"
-            echo "- Health: ${HEALTH_ENDPOINT}"
-            echo "- Version: ${PREFECT_API_URL%/api*}/version"
+        # Final verification
+        if ! curl --silent --fail "${PREFECT_API_URL}/health"; then
+            echo "ERROR: Server failed to start"
             exit 1
         fi
 
-        echo "Server connection established successfully!"
-        echo "API Version: $(curl --silent ${PREFECT_API_URL%/api*}/version)"
-
+        # Work pool operations
         IFS=',' read -ra POOLS <<< "$WORKER_POOLS"
         for pool_entry in "${POOLS[@]}"; do
-            IFS=':' read -r pool_name instance_count <<< "$pool_entry"
-            echo "Processing work pool: ${pool_name}"
-
-            # Idempotent pool creation with overwrite
-            echo "Attempting to create/update pool '${pool_name}'..."
-            if prefect work-pool create --type process "${pool_name}" --overwrite 2>&1; then
-                echo "Pool base created/updated successfully"
-            else
-                echo "Warning: Pool creation returned non-zero exit code (might already exist)"
-            fi
-
-            # Update concurrency limit
-            echo "Setting concurrency limit to ${WORK_POOL_CONCURRENCY}..."
-            if prefect work-pool update "${pool_name}" --concurrency-limit "${WORK_POOL_CONCURRENCY}" 2>&1; then
-                echo "Successfully updated ${pool_name} pool settings"
-            else
-                echo "ERROR: Failed to update work pool ${pool_name}"
-                echo "Check pool exists and CLI has proper permissions"
-                exit 1
-            fi
+            IFS=':' read -r pool_name _ <<< "$pool_entry"
+            echo "Configuring ${pool_name}:"
+            
+            prefect work-pool create --type process "${pool_name}" --overwrite 2>/dev/null || true
+            prefect work-pool update "${pool_name}" --concurrency-limit "${WORK_POOL_CONCURRENCY}" 2>/dev/null
         done
-    else
-        echo "No WORKER_POOLS variable defined; skipping work pool setup."
     fi
 }
+
 
 stop_server() {
     echo "Stopping Prefect Server..."
