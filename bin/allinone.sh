@@ -44,6 +44,12 @@ set -a
 . "$ENV_FILE"
 set +a
 
+# Use WORK_POOL_CONCURRENCY from the env file or default to 2 if not set.
+if [ -z "$WORK_POOL_CONCURRENCY" ]; then
+    echo "WORK_POOL_CONCURRENCY not defined in $ENV_FILE, using default concurrency limit 2."
+    WORK_POOL_CONCURRENCY=2
+fi
+
 build_all() {
     echo "Building all images..."
     BUILD_ARGS="--build-arg GLOBAL_INDEX=${GLOBAL_INDEX} \
@@ -79,6 +85,19 @@ start_server() {
     if ! docker network ls | grep -q "scan_fleet_scannet"; then
         echo "Creating Docker network: scan_fleet_scannet"
         docker network create scan_fleet_scannet
+    fi
+
+    # Create/update each work pool defined in WORKER_POOLS after the server has started
+    if [ -n "$WORKER_POOLS" ]; then
+        IFS=',' read -ra POOLS <<< "$WORKER_POOLS"
+        for pool_entry in "${POOLS[@]}"; do
+            IFS=':' read -r pool_name instance_count <<< "$pool_entry"
+            echo "Creating/updating work pool: ${pool_name} with concurrency limit ${WORK_POOL_CONCURRENCY}"
+            prefect work-pool create --type process "${pool_name}" || true
+            prefect work-pool update "${pool_name}" --concurrency-limit "${WORK_POOL_CONCURRENCY}"
+        done
+    else
+        echo "No WORKER_POOLS variable defined; skipping work pool creation/update."
     fi
 }
 
