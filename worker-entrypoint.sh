@@ -38,6 +38,11 @@ fi
     chown prefect:prefect /home/prefect/.ssh
 }
 
+[ -d /home/prefect/storage ] && {
+    chmod 755 /home/prefect/storage
+    chown prefect:prefect /home/prefect/storage
+}
+
 # Combine CLI-provided WORKER_NAME and INSTANCE for a unique identifier
 UNIQUE_NAME="${WORKER_NAME}-${INSTANCE}"
 echo "Starting Prefect Worker in pool: ${WORK_POOL} with name: ${UNIQUE_NAME}"
