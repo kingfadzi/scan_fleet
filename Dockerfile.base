@@ -232,6 +232,7 @@ RUN chmod 700 /home/prefect/.ssh
 RUN chmod 755 /home/prefect/.m2
 RUN chmod 755 /home/prefect/.gradle
 
+COPY --chown=prefect:prefect --chmod=644 java.cacerts* /home/prefect/
 
 RUN mkdir -p /home/prefect/.pip && \
     if [ -n "$GLOBAL_CERT" ]; then \

@@ -33,12 +33,6 @@ fi
     chown prefect:prefect /home/prefect/.ssh/known_hosts
 }
 
-[ -f /tmp/keys/java.cacerts ] && {
-    cp /tmp/keys/java.cacerts /home/prefect/
-    chmod 755 /home/prefect/java.cacerts
-    chown prefect:prefect /home/prefect/java.cacerts
-}
-
 [ -d /home/prefect/.ssh ] && {
     chmod 700 /home/prefect/.ssh
     chown prefect:prefect /home/prefect/.ssh
