@@ -78,6 +78,7 @@ build_all() {
 }
 
 # Server control functions
+# Server control functions
 start_server() {
     echo "Starting Prefect Server..."
     docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml up -d
@@ -116,24 +117,32 @@ start_server() {
             IFS=':' read -r pool_name _ <<< "$pool_entry"
             echo "Configuring ${pool_name}:"
 
-            # Create (or overwrite) work pool via REST API
-            create_response=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${PREFECT_API_URL}/api/work-pools" \
+            # Create work pool via REST API (V3 endpoint)
+            create_response=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${PREFECT_API_URL}/api/work_pools/" \
                 -H "Content-Type: application/json" \
-                -d "{\"name\":\"${pool_name}\", \"type\":\"process\", \"overwrite\":true}")
-            if [ "$create_response" -ne 201 ] && [ "$create_response" -ne 200 ]; then
-                echo "Warning: Failed to create work pool ${pool_name} (HTTP status $create_response)"
-            else
-                echo "Work pool ${pool_name} created successfully."
-            fi
+                -d "{\"name\":\"${pool_name}\", \"type\":\"process\"}")
 
-            # Update work pool concurrency limit via REST API
-            update_response=$(curl -sS -o /dev/null -w "%{http_code}" -X PATCH "${PREFECT_API_URL}/api/work-pools/${pool_name}" \
+            case $create_response in
+                201)
+                    echo "Work pool ${pool_name} created successfully."
+                    ;;
+                409)
+                    echo "Work pool ${pool_name} already exists."
+                    ;;
+                *)
+                    echo "Warning: Failed to create work pool ${pool_name} (HTTP status $create_response)"
+                    ;;
+            esac
+
+            # Update work pool concurrency limit via REST API (V3 endpoint)
+            update_response=$(curl -sS -o /dev/null -w "%{http_code}" -X PATCH "${PREFECT_API_URL}/api/work_pools/${pool_name}" \
                 -H "Content-Type: application/json" \
                 -d "{\"concurrency_limit\":${WORK_POOL_CONCURRENCY}}")
-            if [ "$update_response" -ne 200 ]; then
-                echo "Warning: Failed to update work pool ${pool_name} (HTTP status $update_response)"
+
+            if [ "$update_response" -eq 200 ]; then
+                echo "Concurrency limit updated successfully for ${pool_name}."
             else
-                echo "Work pool ${pool_name} updated successfully."
+                echo "Warning: Failed to update work pool ${pool_name} (HTTP status $update_response)"
             fi
         done
     fi
