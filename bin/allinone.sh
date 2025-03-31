@@ -95,9 +95,9 @@ start_server() {
         echo "Connecting to: ${PREFECT_API_URL}"
         echo -n "Waiting for server "
 
-        # Readiness check
+        # Readiness check with redirect following
         for _ in {1..15}; do
-            if curl --silent --fail --output /dev/null "${PREFECT_API_URL}/health"; then
+            if curl -L --silent --fail --output /dev/null "${PREFECT_API_URL}/health"; then
                 echo " Ready!"
                 break
             fi
@@ -105,8 +105,8 @@ start_server() {
             sleep 2
         done
 
-        # Final verification
-        if ! curl --silent --fail "${PREFECT_API_URL}/health"; then
+        # Final verification with redirect following
+        if ! curl -L --silent --fail "${PREFECT_API_URL}/health"; then
             echo "ERROR: Server failed to start"
             exit 1
         fi
@@ -117,8 +117,8 @@ start_server() {
             IFS=':' read -r pool_name _ <<< "$pool_entry"
             echo "Configuring ${pool_name}:"
 
-            # Create work pool with base_job_template
-            create_response=$(curl -sS -o /dev/null -w "%{http_code}" -X POST \
+            # Create work pool with redirect handling
+            create_response=$(curl -L -sS -o /dev/null -w "%{http_code}" -X POST \
                 "${PREFECT_API_URL}/work_pools" \
                 --header "Content-Type: application/json" \
                 --data-raw "{
@@ -136,12 +136,12 @@ start_server() {
                     ;;
                 *)
                     echo "Warning: Failed to create work pool ${pool_name} (HTTP status $create_response)"
-                    continue  # Skip update if creation failed
+                    continue
                     ;;
             esac
 
-            # Update work pool concurrency limit
-            update_response=$(curl -sS -o /dev/null -w "%{http_code}" -X PATCH \
+            # Update work pool concurrency limit with redirect handling
+            update_response=$(curl -L -sS -o /dev/null -w "%{http_code}" -X PATCH \
                 "${PREFECT_API_URL}/work_pools/${pool_name}" \
                 --header "Content-Type: application/json" \
                 --data-raw "{
