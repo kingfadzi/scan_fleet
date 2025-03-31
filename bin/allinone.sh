@@ -95,7 +95,7 @@ start_server() {
         echo "Connecting to: ${PREFECT_API_URL}"
         echo -n "Waiting for server "
 
-        # Simplified readiness check
+        # Readiness check
         for _ in {1..15}; do
             if curl --silent --fail --output /dev/null "${PREFECT_API_URL}/health"; then
                 echo " Ready!"
@@ -117,10 +117,15 @@ start_server() {
             IFS=':' read -r pool_name _ <<< "$pool_entry"
             echo "Configuring ${pool_name}:"
 
-            # Create work pool via REST API (V3 endpoint)
-            create_response=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${PREFECT_API_URL}/api/work_pools/" \
-                -H "Content-Type: application/json" \
-                -d "{\"name\":\"${pool_name}\", \"type\":\"process\"}")
+            # Create work pool with base_job_template
+            create_response=$(curl -sS -o /dev/null -w "%{http_code}" -X POST \
+                "${PREFECT_API_URL}/work_pools" \
+                --header "Content-Type: application/json" \
+                --data-raw "{
+                    \"name\": \"${pool_name}\",
+                    \"type\": \"process\",
+                    \"base_job_template\": {}
+                }")
 
             case $create_response in
                 201)
@@ -131,13 +136,17 @@ start_server() {
                     ;;
                 *)
                     echo "Warning: Failed to create work pool ${pool_name} (HTTP status $create_response)"
+                    continue  # Skip update if creation failed
                     ;;
             esac
 
-            # Update work pool concurrency limit via REST API (V3 endpoint)
-            update_response=$(curl -sS -o /dev/null -w "%{http_code}" -X PATCH "${PREFECT_API_URL}/api/work_pools/${pool_name}" \
-                -H "Content-Type: application/json" \
-                -d "{\"concurrency_limit\":${WORK_POOL_CONCURRENCY}}")
+            # Update work pool concurrency limit
+            update_response=$(curl -sS -o /dev/null -w "%{http_code}" -X PATCH \
+                "${PREFECT_API_URL}/work_pools/${pool_name}" \
+                --header "Content-Type: application/json" \
+                --data-raw "{
+                    \"concurrency_limit\": ${WORK_POOL_CONCURRENCY}
+                }")
 
             if [ "$update_response" -eq 200 ]; then
                 echo "Concurrency limit updated successfully for ${pool_name}."
@@ -147,7 +156,6 @@ start_server() {
         done
     fi
 }
-
 
 stop_server() {
     echo "Stopping Prefect Server..."
