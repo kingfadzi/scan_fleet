@@ -1,5 +1,10 @@
 FROM scanfleet-base:latest
 
+
+RUN mkdir -p /home/prefect && \
+    chown prefect:prefect /home/prefect && \
+    chmod 755 /home/prefect
+
 USER prefect
 
 WORKDIR $PREFECT_HOME
