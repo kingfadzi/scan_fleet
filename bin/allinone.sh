@@ -78,7 +78,6 @@ build_all() {
 }
 
 # Server control functions
-# Server control functions
 start_server() {
     echo "Starting Prefect Server..."
     docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml up -d
@@ -115,44 +114,43 @@ start_server() {
         IFS=',' read -ra POOLS <<< "$WORKER_POOLS"
         for pool_entry in "${POOLS[@]}"; do
             IFS=':' read -r pool_name _ <<< "$pool_entry"
-            echo "Configuring ${pool_name}:"
+            echo "Recreating ${pool_name}:"
 
-            # Create work pool with redirect handling
+            # First delete existing work pool (if any)
+            delete_response=$(curl -L -sS -o /dev/null -w "%{http_code}" -X DELETE \
+                "${PREFECT_API_URL}/work_pools/${pool_name}")
+
+            case $delete_response in
+                204|200)
+                    echo "Existing work pool ${pool_name} removed."
+                    ;;
+                404)
+                    echo "No existing work pool ${pool_name} to remove."
+                    ;;
+                *)
+                    echo "Warning: Failed to delete work pool ${pool_name} (HTTP status $delete_response)"
+                    ;;
+            esac
+
+            # Create new work pool with fresh configuration
             create_response=$(curl -L -sS -o /dev/null -w "%{http_code}" -X POST \
                 "${PREFECT_API_URL}/work_pools" \
                 --header "Content-Type: application/json" \
                 --data-raw "{
                     \"name\": \"${pool_name}\",
                     \"type\": \"process\",
-                    \"base_job_template\": {}
+                    \"base_job_template\": {},
+                    \"concurrency_limit\": ${WORK_POOL_CONCURRENCY}
                 }")
 
             case $create_response in
                 201)
-                    echo "Work pool ${pool_name} created successfully."
-                    ;;
-                409)
-                    echo "Work pool ${pool_name} already exists."
+                    echo "Work pool ${pool_name} recreated successfully."
                     ;;
                 *)
-                    echo "Warning: Failed to create work pool ${pool_name} (HTTP status $create_response)"
-                    continue
+                    echo "Warning: Failed to recreate work pool ${pool_name} (HTTP status $create_response)"
                     ;;
             esac
-
-            # Update work pool concurrency limit with redirect handling
-            update_response=$(curl -L -sS -o /dev/null -w "%{http_code}" -X PATCH \
-                "${PREFECT_API_URL}/work_pools/${pool_name}" \
-                --header "Content-Type: application/json" \
-                --data-raw "{
-                    \"concurrency_limit\": ${WORK_POOL_CONCURRENCY}
-                }")
-
-            if [ "$update_response" -eq 200 ]; then
-                echo "Concurrency limit updated successfully for ${pool_name}."
-            else
-                echo "Warning: Failed to update work pool ${pool_name} (HTTP status $update_response)"
-            fi
         done
     fi
 }
