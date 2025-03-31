@@ -65,6 +65,10 @@ RUN mkdir -p ${NVM_DIR} && \
 
 # COPY tls-ca-bundle.pem /usr/local/share/ca-certificates/ 2>/dev/null || true
 
+RUN mkdir -p /tmp/keys && \
+    chmod 700 /tmp/keys && \
+    chown -R ${HOST_UID}:${HOST_GID}  /tmp/keys
+
 RUN [ -f tls-ca-bundle.pem ] && cp tls-ca-bundle.pem /usr/local/share/ca-certificates/ || true
 
 RUN echo "Using Node mirror: ${NVM_NODEJS_ORG_MIRROR}" \
