@@ -16,7 +16,7 @@ services:
         NVM_NODEJS_ORG_MIRROR: ${NVM_NODEJS_ORG_MIRROR}
         NVM_PRIVATE_REPO: ${NVM_PRIVATE_REPO}
     tmpfs:
-      - ${CONTAINER_HOME}/cloned_repositories:size=20G,mode=1777,exec
+      - ${CONTAINER_HOME}/cloned_repositories:size=10G,mode=1777,exec
       - ${CONTAINER_HOME}/logs:size=500M,mode=1777,uid=${HOST_UID},gid=${HOST_GID},exec
       - ${CONTAINER_HOME}/output:size=500M,mode=1777,exec
     labels:
