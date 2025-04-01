@@ -38,10 +38,12 @@ fi
     chown prefect:prefect /home/prefect/.ssh
 }
 
-[ -d /home/prefect/storage ] && {
-    chmod 755 /home/prefect/storage
-    chown prefect:prefect /home/prefect/storage
-}
+if [ ! -d "/home/prefect/storage" ]; then
+    mkdir -p "/home/prefect/storage"
+fi
+
+chmod 755 "/home/prefect/storage"
+chown prefect:prefect "/home/prefect/storage"
 
 # Combine CLI-provided WORKER_NAME and INSTANCE for a unique identifier
 UNIQUE_NAME="${WORKER_NAME}-${INSTANCE}"
