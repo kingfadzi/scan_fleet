@@ -185,6 +185,7 @@ RUN mkdir -p /usr/local/lib/python3.11/site-packages/prefect/server/ui_build && 
 RUN mkdir -p \
       /home/prefect/ \
       /home/prefect/cloned_repositories \
+      /home/prefect/storage \
       /home/prefect/output \
       /home/prefect/logs \
       /home/prefect/.ssh \
@@ -217,6 +218,7 @@ RUN wget --progress=dot:giga -O /tmp/tools.tar.gz "${TOOLS_TARBALL_URL}" \
  && chmod -R +x /usr/local/bin
 
 RUN chown prefect:prefect -R /home/prefect/cloned_repositories
+RUN chown prefect:prefect -R /home/prefect/storage
 RUN chown prefect:prefect -R /home/prefect/output
 RUN chown prefect:prefect -R /home/prefect/logs
 RUN chown prefect:prefect -R /home/prefect/.cache
