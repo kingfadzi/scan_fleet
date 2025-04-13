@@ -170,6 +170,7 @@ RUN alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
       pip-tools \
       griffe==1.6.0 \
       psutil \
+      filelock \
       sqlalchemy
 
     # Upgrade pip and install Prefect
