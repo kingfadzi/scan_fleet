@@ -153,38 +153,23 @@ ENV PYTHONIOENCODING=utf-8
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
+# Ensure Python 3.11 is set as default and pip is ready
 RUN alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
     alternatives --set python3 /usr/bin/python3.11 && \
     python3 -m ensurepip && \
-    python3 -m pip install --no-cache-dir --upgrade pip && \
-    python3 -m pip install --no-cache-dir \
-      psycopg2-binary \
-      gitpython==3.1.43 \
-      python-gitlab==5.3.0 \
-      requests==2.32.3 \
-      pandas==2.2.3 \
-      pytz==2024.2 \
-      PyYAML==6.0.2 \
-      numpy \
-      lizard==1.17.13 \
-      semgrep \
-      python-dotenv \
-      redis \
-      checkov \
-      pipreqs \
-      lxml \
-      pip-tools \
-      griffe==1.6.0 \
-      psutil \
-      filelock \
-      asyncpg \
-      aioodbc \
-      pyodbc \
-      sqlalchemy
+    python3 -m pip install --no-cache-dir --upgrade pip
 
-    # Upgrade pip and install Prefect
-RUN python3 -m ensurepip && \
-    python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
+# Copy the frozen requirements file
+COPY frozen_requirements.txt /tmp/frozen_requirements.txt
+
+# Fail if the requirements file is missing
+RUN test -f /tmp/frozen_requirements.txt || (echo "Missing frozen_requirements.txt. Run: pip freeze > frozen_requirements.txt" && exit 1)
+
+# Install all dependencies from the frozen list
+RUN python3 -m pip install --no-cache-dir -r /tmp/frozen_requirements.txt
+
+# Install Prefect and build tools separately
+RUN python3 -m pip install --no-cache-dir --upgrade setuptools==78.1.0 wheel && \
     python3 -m pip install --no-cache-dir "prefect==$PREFECT_VERSION"
 
 # FIX: Pre-create UI build directory and set correct permissions
