@@ -141,7 +141,6 @@ RUN dnf -y update && \
       unixODBC-devel \
       krb5-workstation \
       cyrus-sasl-gssapi \
-      msodbcsql17 \
       dnf-plugins-core && \
     dnf module reset -y maven && \
     dnf module enable -y maven:3.8 && \
