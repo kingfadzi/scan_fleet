@@ -138,7 +138,6 @@ RUN dnf -y update && \
       unzip \
       postgresql \
       unixODBC \
-      unixODBC-devel \
       krb5-workstation \
       cyrus-sasl-gssapi \
       dnf-plugins-core && \
