@@ -137,6 +137,11 @@ RUN dnf -y update && \
       curl \
       unzip \
       postgresql \
+      unixODBC \
+      unixODBC-devel \
+      krb5-workstation \
+      cyrus-sasl-gssapi \
+      msodbcsql17 \
       dnf-plugins-core && \
     dnf module reset -y maven && \
     dnf module enable -y maven:3.8 && \
@@ -171,6 +176,9 @@ RUN alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
       griffe==1.6.0 \
       psutil \
       filelock \
+      asyncpg \
+      aioodbc \
+      pyodbc \
       sqlalchemy
 
     # Upgrade pip and install Prefect

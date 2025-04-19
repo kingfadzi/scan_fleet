@@ -50,6 +50,7 @@ services:
       PREFECT_LOGGING_LEVEL: DEBUG
       PREFECT_LOGGING_PERSISTENCE: false
       WORKER_NAME: ${WORKER_NAME}
+      KRB5CCNAME: /krb5cache/krb5cc
     restart: always
     logging:
       driver: "json-file"
@@ -63,6 +64,7 @@ services:
       - ${USER_HOME}/tls-ca-bundle.pem:/etc/ssl/certs/tls-ca-bundle.pem:ro,Z
       - ${GRADLE_CACHE_PATH}:${CONTAINER_HOME}/.gradle
       - ${M2_CACHE_PATH}:${CONTAINER_HOME}/.m2
+      - ${USER_HOME}/.kerberos_cache:/krb5cache:ro,Z
     networks:
       - scan_fleet_scannet
 
