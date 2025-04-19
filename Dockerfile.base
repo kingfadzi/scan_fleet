@@ -148,6 +148,9 @@ RUN dnf -y update && \
     dnf module install -y maven && \
     dnf clean all
 
+RUN ACCEPT_EULA=Y dnf install -y msodbcsql17 || \
+    echo "[WARNING] msodbcsql17 not available — skipping"
+
 ENV PYTHONIOENCODING=utf-8
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
