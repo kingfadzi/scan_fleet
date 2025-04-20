@@ -99,36 +99,11 @@ RUN ACCEPT_EULA=Y dnf install -y msodbcsql17 || \
 # -----------------------------
 # Python environment
 # -----------------------------
-Thanks — the error you're seeing about setuptools==78.1.1 likely stems from the fact that when you run --upgrade setuptools unpinned, it installs the latest version — and as of setuptools 78+, it requires Python ≥3.9.
-
-However, you're already using Python 3.11, so that should be fine — unless:
-
-1. You're using a stale system pip during the upgrade.
-
-
-2. ensurepip pulls in an old or broken pip/setuptools base.
-
-
-3. Your pip install --upgrade somehow pulls conflicting wheel metadata.
-
-
-
-
----
-
-✅ Fix: Force pip to upgrade itself first before upgrading setuptools
-
-Split the upgrades into two safe steps:
 
 RUN python3.11 -m ensurepip && \
     python3.11 -m pip install --no-cache-dir --upgrade pip && \
     python3.11 -m pip install --no-cache-dir --upgrade setuptools
 
-> This ensures:
-
-You get the latest pip first (with proper wheel handling)
-
-Then upgrade setuptools safely
 
 # -----------------------------
 # Python environment
