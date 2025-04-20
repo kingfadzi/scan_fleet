@@ -25,3 +25,4 @@ pydantic>=2.0
 psutil
 filelock
 botocore==1.35.99
+aioodbc
