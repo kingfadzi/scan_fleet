@@ -1,6 +1,5 @@
 semgrep==1.78.0
 prefect==3.2.1
-atlassian_python_api==4.0.3
 GitPython==3.1.43
 pandas==2.2.3
 python_dateutil==2.9.0.post0
@@ -17,8 +16,6 @@ fastapi
 uvicorn
 pydantic
 prefect-github
-pipreqs
-pip-tools
 lxml
 pydantic>=2.0
 psutil
