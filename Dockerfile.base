@@ -123,7 +123,6 @@ RUN curl -L "${GLOBAL_INDEX_DOWNLOAD}/packages/source/p/peewee/peewee-3.14.4.tar
 
 # Install requirements
 COPY requirements.txt /tmp/requirements.txt
-RUN test -f /tmp/requirements.txt || (echo "Missing requirements.txt. Run: pip freeze > requirements.txt" && exit 1)
 RUN python3.11 -m pip install --no-cache-dir -r /tmp/requirements.txt
 
 
