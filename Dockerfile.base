@@ -53,7 +53,8 @@ RUN echo "[global]" > /etc/pip.conf && \
     fi && \
     if [ -n "$GLOBAL_INDEX_URL" ]; then \
       echo "index-url = ${GLOBAL_INDEX_URL}" >> /etc/pip.conf; \
-    fi
+    fi && \
+    echo "cert = /etc/pki/tls/certs/ca-bundle.crt" >> /etc/pip.conf
 
 # Development tools
 RUN dnf group install -y "Development Tools"
@@ -176,12 +177,10 @@ COPY --chown=prefect:prefect --chmod=644 java.cacerts* /home/prefect/
 COPY --chown=prefect:prefect --chmod=644 odbc.ini /etc/odbc.ini
 COPY --chown=prefect:prefect --chmod=644 odbcinst.ini /etc/odbcinst.ini
 
-# Pip configuration
+# -----------------------------
+# Pip Configuration
+# -----------------------------
 RUN mkdir -p /home/prefect/.pip && \
-    if [ -n "$GLOBAL_CERT" ]; then \
-      echo -e "[global]\ncert = ${GLOBAL_CERT}\nindex-url = ${GLOBAL_INDEX_URL}" > /home/prefect/.pip/pip.conf; \
-    else \
-      echo -e "[global]\nindex-url = ${GLOBAL_INDEX_URL}" > /home/prefect/.pip/pip.conf; \
-    fi
+    echo -e "[global]\nindex-url = ${GLOBAL_INDEX_URL}\ncert = /etc/pki/tls/certs/ca-bundle.crt" > /home/prefect/.pip/pip.conf
 
 CMD ["/bin/bash"]
