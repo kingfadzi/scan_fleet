@@ -1,13 +1,23 @@
 FROM almalinux:8
 
-# -----------------------------
-# Environment & Build Arguments
-# -----------------------------
 ENV PREFECT_VERSION="3.2.1" \
-    PREFECT_HOME="/home/prefect" \
-    TRIVY_CACHE_DIR="/home/prefect/.cache/trivy" \
-    GRYPE_DB_CACHE_DIR="/home/prefect/.cache/grype/db" \
-    XEOL_DB_CACHE_DIR="/home/prefect/.cache/xeol/db" \
+    PREFECT_HOME="/home/prefect"
+
+ARG GLOBAL_CERT
+ARG GLOBAL_INDEX
+ARG GLOBAL_INDEX_URL
+ARG HOST_UID
+ARG HOST_GID
+ARG TOOLS_TARBALL_URL
+
+# Optional arguments with empty defaults
+ARG HTTP_PROXY=""
+ARG HTTPS_PROXY=""
+ARG NO_PROXY=""
+
+ENV TRIVY_CACHE_DIR=$PREFECT_HOME/.cache/trivy \
+    GRYPE_DB_CACHE_DIR=$PREFECT_HOME/.cache/grype/db \
+    XEOL_DB_CACHE_DIR=$PREFECT_HOME/.cache/xeol/db \
     GRYPE_DB_AUTO_UPDATE=false \
     GRYPE_DB_VALIDATE_AGE=false \
     SYFT_CHECK_FOR_APP_UPDATE=false \
@@ -16,33 +26,39 @@ ENV PREFECT_VERSION="3.2.1" \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8
 
-ARG GLOBAL_INDEX
-ARG GLOBAL_INDEX_URL
-ARG HOST_UID
-ARG HOST_GID
-ARG TOOLS_TARBALL_URL
-ARG INCLUDE_CA_CERT=false
-
-ARG HTTP_PROXY=""
-ARG HTTPS_PROXY=""
-ARG NO_PROXY=""
-
 # -----------------------------
-# System setup and dev tools
+# Optional CA Certificate Handling
 # -----------------------------
+COPY tls-ca-bundle.pem /tmp/ca.pem 2>/dev/null || true
+RUN if [ -f /tmp/ca.pem ]; then \
+      echo "Installing custom CA certificate..." && \
+      mkdir -p /etc/pki/ca-trust/source/anchors && \
+      cp /tmp/ca.pem /etc/pki/ca-trust/source/anchors/tls-ca-bundle.pem && \
+      update-ca-trust extract && \
+      echo "[global]" > /etc/pip.conf && \
+      echo "cert = /etc/pki/ca-trust/source/anchors/tls-ca-bundle.pem" >> /etc/pip.conf; \
+    else \
+      echo "No custom CA certificate provided - skipping installation"; \
+    fi
+
+
 RUN mkdir -p /tmp/keys && \
     chmod 700 /tmp/keys && \
-    chown -R ${HOST_UID}:${HOST_GID} /tmp/keys
+    chown -R ${HOST_UID}:${HOST_GID}  /tmp/keys
 
+# Package manager configuration
 RUN echo "[global]" > /etc/pip.conf && \
-    if [ -n "$GLOBAL_INDEX" ]; then echo "index = ${GLOBAL_INDEX}" >> /etc/pip.conf; fi && \
-    if [ -n "$GLOBAL_INDEX_URL" ]; then echo "index-url = ${GLOBAL_INDEX_URL}" >> /etc/pip.conf; fi
+    if [ -n "$GLOBAL_INDEX" ]; then \
+      echo "index = ${GLOBAL_INDEX}" >> /etc/pip.conf; \
+    fi && \
+    if [ -n "$GLOBAL_INDEX_URL" ]; then \
+      echo "index-url = ${GLOBAL_INDEX_URL}" >> /etc/pip.conf; \
+    fi
 
+# Development tools
 RUN dnf group install -y "Development Tools"
 
-# -----------------------------
-# Install Java 21
-# -----------------------------
+# Java 21 installation
 RUN dnf install -y java-21-openjdk-devel && \
     dnf clean all && \
     alternatives --install /usr/bin/java java /usr/lib/jvm/java-21/bin/java 1 && \
@@ -51,60 +67,55 @@ RUN dnf install -y java-21-openjdk-devel && \
 ENV JAVA_HOME=/usr/lib/jvm/java-21
 ENV PATH="${JAVA_HOME}/bin:$PATH"
 
-# -----------------------------
-# Install Python 3.11 and deps
-# -----------------------------
+# System packages
 RUN dnf -y update && \
     dnf module reset -y python36 && \
     dnf install -y \
-      bash nc glibc-langpack-en \
-      python3.11 python3.11-pip python3.11-devel \
-      git wget curl unzip postgresql \
-      unixODBC krb5-workstation cyrus-sasl-gssapi \
+      bash \
+      nc \
+      glibc-langpack-en \
+      python3.11 \
+      python3.11-pip \
+      python3.11-devel \
+      git \
+      wget \
+      curl \
+      unzip \
+      postgresql \
+      unixODBC \
+      krb5-workstation \
+      cyrus-sasl-gssapi \
       dnf-plugins-core && \
     dnf module reset -y maven && \
     dnf module enable -y maven:3.8 && \
     dnf module install -y maven && \
     dnf clean all
 
+# Microsoft ODBC driver
 RUN ACCEPT_EULA=Y dnf install -y msodbcsql17 || \
     echo "[WARNING] msodbcsql17 not available — skipping"
 
-RUN alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
+# Python environment
+RUN dnf install -y \
+        python3.11 \
+        python3.11-pip \
+        python3.11-devel && \
+    alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
     alternatives --set python3 /usr/bin/python3.11 && \
     python3.11 -m ensurepip && \
     python3.11 -m pip install --no-cache-dir pip==23.3.1 setuptools==68.2.2
 
-# -----------------------------
-# Optional CA cert support
-# -----------------------------
-COPY tls-ca-bundle.pem /tmp/ca.pem
-RUN if [ "$INCLUDE_CA_CERT" = "true" ] && [ -f /tmp/ca.pem ]; then \
-      echo "Installing custom CA cert..." && \
-      cp /tmp/ca.pem /etc/pki/ca-trust/source/anchors/tls-ca-bundle.pem && \
-      update-ca-trust extract && \
-      echo "cert = /etc/pki/ca-trust/source/anchors/tls-ca-bundle.pem" >> /etc/pip.conf; \
-    else \
-      echo "No custom CA cert provided or INCLUDE_CA_CERT=false; skipping."; \
-    fi
-
-# -----------------------------
-# Python Requirements
-# -----------------------------
+# Python requirements
 COPY frozen_requirements.txt /tmp/frozen_requirements.txt
 RUN test -f /tmp/frozen_requirements.txt || (echo "Missing frozen_requirements.txt. Run: pip freeze > frozen_requirements.txt" && exit 1)
 RUN python3.11 -m pip install --no-cache-dir -r /tmp/frozen_requirements.txt
 
-# -----------------------------
-# Prefect setup
-# -----------------------------
+# Prefect UI setup
 RUN mkdir -p /usr/local/lib/python3.11/site-packages/prefect/server/ui_build && \
     chown -R ${HOST_UID}:${HOST_GID} /usr/local/lib/python3.11/site-packages/prefect/server/ && \
     chmod -R 777 /usr/local/lib/python3.11/site-packages/prefect/server/
 
-# -----------------------------
-# Home dir, user, and permissions
-# -----------------------------
+# Directory structure
 RUN mkdir -p \
       /home/prefect/ \
       /home/prefect/cloned_repositories \
@@ -115,49 +126,62 @@ RUN mkdir -p \
       /home/prefect/.m2 \
       /home/prefect/.gradle
 
+# User/group configuration
 RUN existing_group=$(getent group ${HOST_GID} | cut -d: -f1) && \
-    if [ -z "$existing_group" ]; then groupadd -g ${HOST_GID} prefect; else groupmod -n prefect "$existing_group"; fi && \
+    if [ -z "$existing_group" ]; then \
+      groupadd -g ${HOST_GID} prefect; \
+    else \
+      groupmod -n prefect "$existing_group"; \
+    fi && \
     existing_user=$(getent passwd ${HOST_UID} | cut -d: -f1) && \
-    if [ -z "$existing_user" ]; then useradd -m -u ${HOST_UID} -g prefect prefect; else usermod -l prefect "$existing_user"; fi
+    if [ -z "$existing_user" ]; then \
+      useradd -m -u ${HOST_UID} -g prefect prefect; \
+    else \
+      usermod -l prefect "$existing_user"; \
+    fi
 
-RUN chown -R ${HOST_UID}:${HOST_GID} /home/prefect && \
+# Permissions
+RUN mkdir -p /home/prefect && \
+    chown -R ${HOST_UID}:${HOST_GID} /home/prefect && \
     chmod -R 777 /home/prefect
 
-# -----------------------------
-# Tools setup
-# -----------------------------
-RUN wget --progress=dot:giga -O /tmp/tools.tar.gz "${TOOLS_TARBALL_URL}" || \
-    (echo "Error: Failed to download tools tarball" && exit 1) && \
-    tar -xzvf /tmp/tools.tar.gz -C / && \
-    rm /tmp/tools.tar.gz && \
-    chown -R prefect:prefect /usr/local/bin && \
-    chmod -R +x /usr/local/bin
+# Tools installation
+RUN wget --progress=dot:giga -O /tmp/tools.tar.gz "${TOOLS_TARBALL_URL}" \
+    || (echo "Error: Failed to download tools tarball" && exit 1) \
+ && tar -xzvf /tmp/tools.tar.gz -C / \
+ && rm /tmp/tools.tar.gz \
+ && chown -R prefect:prefect /usr/local/bin \
+ && chmod -R +x /usr/local/bin
 
-# -----------------------------
-# Ownerships and permissions
-# -----------------------------
-RUN chown prefect:prefect -R /home/prefect/cloned_repositories
-RUN chown prefect:prefect -R /home/prefect/storage
-RUN chown prefect:prefect -R /home/prefect/output
-RUN chown prefect:prefect -R /home/prefect/logs
-RUN chown prefect:prefect -R /home/prefect/.cache
-RUN chown prefect:prefect -R /home/prefect/.grype
-RUN chown prefect:prefect -R /home/prefect/.semgrep
-RUN chown prefect:prefect -R /home/prefect/.trivy
-RUN chown prefect:prefect -R /home/prefect/.syft
-RUN chown prefect:prefect -R /home/prefect/.m2
-RUN chown prefect:prefect -R /home/prefect/.gradle
-RUN chown prefect:prefect -R /home/prefect/.ssh
+# Final permissions
+RUN chown prefect:prefect -R /home/prefect/cloned_repositories \
+    /home/prefect/storage \
+    /home/prefect/output \
+    /home/prefect/logs \
+    /home/prefect/.cache \
+    /home/prefect/.grype \
+    /home/prefect/.semgrep \
+    /home/prefect/.trivy \
+    /home/prefect/.syft \
+    /home/prefect/.m2 \
+    /home/prefect/.gradle \
+    /home/prefect/.ssh
 
-RUN chmod 700 /home/prefect/.ssh
-RUN chmod 755 /home/prefect/.m2
-RUN chmod 755 /home/prefect/.gradle
+RUN chmod 700 /home/prefect/.ssh && \
+    chmod 755 /home/prefect/.m2 && \
+    chmod 755 /home/prefect/.gradle
 
-# -----------------------------
-# External Config Files
-# -----------------------------
+# Configuration files
 COPY --chown=prefect:prefect --chmod=644 java.cacerts* /home/prefect/
 COPY --chown=prefect:prefect --chmod=644 odbc.ini /etc/odbc.ini
 COPY --chown=prefect:prefect --chmod=644 odbcinst.ini /etc/odbcinst.ini
+
+# Pip configuration
+RUN mkdir -p /home/prefect/.pip && \
+    if [ -n "$GLOBAL_CERT" ]; then \
+      echo -e "[global]\ncert = ${GLOBAL_CERT}\nindex-url = ${GLOBAL_INDEX_URL}" > /home/prefect/.pip/pip.conf; \
+    else \
+      echo -e "[global]\nindex-url = ${GLOBAL_INDEX_URL}" > /home/prefect/.pip/pip.conf; \
+    fi
 
 CMD ["/bin/bash"]
