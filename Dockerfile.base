@@ -108,6 +108,7 @@ RUN dnf install -y \
     python3.11 -m ensurepip && \
     python3.11 -m pip install --no-cache-dir --upgrade pip setuptools
 
+
 # Python requirements
 COPY frozen_requirements.txt /tmp/frozen_requirements.txt
 RUN test -f /tmp/frozen_requirements.txt || (echo "Missing frozen_requirements.txt. Run: pip freeze > frozen_requirements.txt" && exit 1)
