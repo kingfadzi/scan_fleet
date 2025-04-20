@@ -107,13 +107,22 @@ RUN dnf install -y \
     alternatives --set python3 /usr/bin/python3.11 && \
     python3.11 -m ensurepip
 
-# Pin pip + setuptools BEFORE installing requirements
+# -----------------------------
+# Force wheel-only installs, no build isolation
+# -----------------------------
+ENV PIP_ONLY_BINARY=:all: \
+    PIP_NO_BUILD_ISOLATION=1 \
+    PIP_NO_INDEX=0
+
+# -----------------------------
+# Python dependency install
+# -----------------------------
 RUN python3.11 -m pip install --no-cache-dir --upgrade pip setuptools==78.1.0 wheel
 
-# Copy and install requirements
 COPY requirements.txt /tmp/requirements.txt
 RUN test -f /tmp/requirements.txt || (echo "Missing requirements.txt. Run: pip freeze > requirements.txt" && exit 1)
 RUN python3.11 -m pip install --no-cache-dir -r /tmp/requirements.txt
+
 
 # Prefect UI setup
 RUN mkdir -p /usr/local/lib/python3.11/site-packages/prefect/server/ui_build && \
