@@ -54,6 +54,7 @@ build_all() {
     echo "Building all images..."
     BUILD_ARGS="--build-arg GLOBAL_INDEX=${GLOBAL_INDEX} \
 --build-arg GLOBAL_INDEX_URL=${GLOBAL_INDEX_URL} \
+--build-arg GLOBAL_INDEX_DOWNLOAD=${GLOBAL_INDEX_DOWNLOAD} \
 --build-arg GLOBAL_CERT=${GLOBAL_CERT} \
 --build-arg HOST_UID=${HOST_UID} \
 --build-arg HOST_GID=${HOST_GID} \

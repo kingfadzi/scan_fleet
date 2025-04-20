@@ -114,7 +114,7 @@ ENV PIP_ONLY_BINARY=:all: \
 RUN python3.11 -m pip install --no-cache-dir --upgrade pip setuptools==78.1.0 wheel
 
 # Build and install peewee from source (tarball in mirror)
-RUN curl -L "${GLOBAL_INDEX_URL}/packages/source/p/peewee/peewee-3.14.4.tar.gz" -o /tmp/peewee.tar.gz && \
+RUN curl -L "${GLOBAL_INDEX_DOWNLOAD}/packages/source/p/peewee/peewee-3.14.4.tar.gz" -o /tmp/peewee.tar.gz && \
     tar -xzf /tmp/peewee.tar.gz -C /tmp && \
     cd /tmp/peewee-3.14.4 && \
     python3.11 -m pip wheel . -w dist && \
