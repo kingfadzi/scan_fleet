@@ -165,12 +165,13 @@ COPY frozen_requirements.txt /tmp/frozen_requirements.txt
 # Fail if the requirements file is missing
 RUN test -f /tmp/frozen_requirements.txt || (echo "Missing frozen_requirements.txt. Run: pip freeze > frozen_requirements.txt" && exit 1)
 
-# Install all dependencies from the frozen list
-RUN python3 -m pip install --no-cache-dir -r /tmp/frozen_requirements.txt
+# Set up pip, setuptools, and wheel first
+RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools==78.1.0 wheel
 
-# Install Prefect and build tools separately
-RUN python3 -m pip install --no-cache-dir --upgrade setuptools==78.1.0 wheel && \
-    python3 -m pip install --no-cache-dir "prefect==$PREFECT_VERSION"
+# THEN install dependencies
+COPY frozen_requirements.txt /tmp/frozen_requirements.txt
+RUN test -f /tmp/frozen_requirements.txt || (echo "Missing frozen_requirements.txt. Run: pip freeze > frozen_requirements.txt" && exit 1)
+RUN python3 -m pip install --no-cache-dir -r /tmp/frozen_requirements.txt
 
 # FIX: Pre-create UI build directory and set correct permissions
 RUN mkdir -p /usr/local/lib/python3.11/site-packages/prefect/server/ui_build && \
