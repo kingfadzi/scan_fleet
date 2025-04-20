@@ -96,7 +96,9 @@ RUN dnf -y update && \
 RUN ACCEPT_EULA=Y dnf install -y msodbcsql17 || \
     echo "[WARNING] msodbcsql17 not available — skipping"
 
+# -----------------------------
 # Python environment
+# -----------------------------
 RUN dnf install -y \
         python3.11 \
         python3.11-pip \
@@ -104,7 +106,7 @@ RUN dnf install -y \
     alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
     alternatives --set python3 /usr/bin/python3.11 && \
     python3.11 -m ensurepip && \
-    python3.11 -m pip install --no-cache-dir pip==23.3.1 setuptools==68.2.2
+    python3.11 -m pip install --no-cache-dir --upgrade pip setuptools
 
 # Python requirements
 COPY frozen_requirements.txt /tmp/frozen_requirements.txt
