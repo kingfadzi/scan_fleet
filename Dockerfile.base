@@ -29,7 +29,7 @@ ENV TRIVY_CACHE_DIR=$PREFECT_HOME/.cache/trivy \
 # -----------------------------
 # Optional CA Certificate Handling
 # -----------------------------
-COPY tls-ca-bundle.pem /tmp/ca.pem 2>/dev/null || true
+COPY tls-ca-bundle.pem* /tmp/ca.pem 2>/dev/null || true
 RUN if [ -f /tmp/ca.pem ]; then \
       echo "Installing custom CA certificate..." && \
       mkdir -p /etc/pki/ca-trust/source/anchors && \
