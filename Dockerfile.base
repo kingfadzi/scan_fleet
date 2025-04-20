@@ -166,7 +166,7 @@ COPY frozen_requirements.txt /tmp/frozen_requirements.txt
 RUN test -f /tmp/frozen_requirements.txt || (echo "Missing frozen_requirements.txt. Run: pip freeze > frozen_requirements.txt" && exit 1)
 
 # Set up pip, setuptools, and wheel first
-RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools==78.1.0 wheel
+RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools
 
 # THEN install dependencies
 COPY frozen_requirements.txt /tmp/frozen_requirements.txt
