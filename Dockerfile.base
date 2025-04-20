@@ -96,9 +96,7 @@ RUN dnf -y update && \
 RUN ACCEPT_EULA=Y dnf install -y msodbcsql17 || \
     echo "[WARNING] msodbcsql17 not available — skipping"
 
-# -----------------------------
 # Python environment
-# -----------------------------
 RUN dnf install -y \
         python3.11 \
         python3.11-pip \
@@ -107,18 +105,23 @@ RUN dnf install -y \
     alternatives --set python3 /usr/bin/python3.11 && \
     python3.11 -m ensurepip
 
-# -----------------------------
 # Force wheel-only installs, no build isolation
-# -----------------------------
 ENV PIP_ONLY_BINARY=:all: \
     PIP_NO_BUILD_ISOLATION=1 \
     PIP_NO_INDEX=0
 
-# -----------------------------
-# Python dependency install
-# -----------------------------
+# Upgrade pip and install base packages
 RUN python3.11 -m pip install --no-cache-dir --upgrade pip setuptools==78.1.0 wheel
 
+# Build and install peewee from source (tarball in mirror)
+RUN curl -L "${GLOBAL_INDEX_URL}/packages/source/p/peewee/peewee-3.14.4.tar.gz" -o /tmp/peewee.tar.gz && \
+    tar -xzf /tmp/peewee.tar.gz -C /tmp && \
+    cd /tmp/peewee-3.14.4 && \
+    python3.11 -m pip wheel . -w dist && \
+    python3.11 -m pip install --no-cache-dir dist/peewee-3.14.4-*.whl && \
+    cd / && rm -rf /tmp/peewee*
+
+# Install requirements
 COPY requirements.txt /tmp/requirements.txt
 RUN test -f /tmp/requirements.txt || (echo "Missing requirements.txt. Run: pip freeze > requirements.txt" && exit 1)
 RUN python3.11 -m pip install --no-cache-dir -r /tmp/requirements.txt
