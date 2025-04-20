@@ -10,20 +10,10 @@ ARG HOST_UID
 ARG HOST_GID
 ARG TOOLS_TARBALL_URL
 
-# Required arguments
-ARG NPM_REGISTRY
-ARG NODE_VERSION
-ARG NVM_PRIVATE_REPO
-ARG NVM_VERSION
-
 # Optional arguments with empty defaults
-ARG NVM_NODEJS_ORG_MIRROR=""
-ARG SASS_BINARY=""
 ARG HTTP_PROXY=""
 ARG HTTPS_PROXY=""
 ARG NO_PROXY=""
-ARG NPM_STRICT_SSL=""
-ARG NPM_CAFILE=""
 
 
 ENV TRIVY_CACHE_DIR=$PREFECT_HOME/.cache/trivy
@@ -33,72 +23,16 @@ ENV GRYPE_DB_AUTO_UPDATE=false
 ENV GRYPE_DB_VALIDATE_AGE=false
 ENV SYFT_CHECK_FOR_APP_UPDATE=false
 ENV XEOL_DB_AUTO_UPDATE=false
-ENV SASS_BINARY_SITE=$SASS_BINARY
-ENV NPM_STRICT_SSL=false
 
-ENV NVM_DIR=/usr/local/nvm
-ENV PATH=$NVM_DIR:$PATH
-
-
-RUN   dnf install -y unzip
-RUN   dnf install -y wget
-
-RUN wget --progress=dot:giga \
-        "${NVM_PRIVATE_REPO}${NVM_VERSION}.zip" \
-        -O /tmp/nvm.zip \
-    || { \
-        echo "NVM download failed from ${NVM_PRIVATE_REPO}${NVM_VERSION}.zip"; \
-        exit 1; \
-    }
-
-RUN mkdir -p ${NVM_DIR} && \
-    unzip /tmp/nvm.zip -d /tmp/nvm-temp && \
-    echo "Contents of /tmp/nvm-temp:" && ls -la /tmp/nvm-temp && \
-    for item in /tmp/nvm-temp/*; do \
-        if [ -d "$item" ]; then \
-            cp -r "$item"/* ${NVM_DIR}/; \
-        else \
-            cp "$item" ${NVM_DIR}/; \
-        fi; \
-    done && \
-    rm -rf /tmp/nvm-temp /tmp/nvm.zip
-
-# COPY tls-ca-bundle.pem /usr/local/share/ca-certificates/ 2>/dev/null || true
+ENV PYTHONIOENCODING=utf-8
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 
 RUN mkdir -p /tmp/keys && \
     chmod 700 /tmp/keys && \
     chown -R ${HOST_UID}:${HOST_GID}  /tmp/keys
 
 RUN [ -f tls-ca-bundle.pem ] && cp tls-ca-bundle.pem /usr/local/share/ca-certificates/ || true
-
-RUN echo "Using Node mirror: ${NVM_NODEJS_ORG_MIRROR}" \
-    # Create certs directory if it doesn't exist and validate registry
-    && mkdir -p /usr/local/share/ca-certificates/ \
-    && { [ -n "${NPM_REGISTRY}" ] || { echo "FATAL: NPM_REGISTRY must be set"; exit 1; }; } \
-    && . "${NVM_DIR}/nvm.sh" \
-    && nvm install "${NODE_VERSION}" \
-    && nvm alias default "${NODE_VERSION}" \
-    && nvm use default \
-    && npm config set registry "${NPM_REGISTRY}" \
-    && echo "npm registry: $(npm config get registry)" \
-    && { \
-        [ -n "${SASS_BINARY}" ] && npm config set sass_binary "${SASS_BINARY}"; \
-        [ -n "${NPM_STRICT_SSL}" ] && npm config set strict-ssl "${NPM_STRICT_SSL}"; \
-        # CA config with directory verification \
-        { [ -n "${NPM_CAFILE}" ] && npm config set cafile "${NPM_CAFILE}"; } || \
-        { [ -f "/usr/local/share/ca-certificates/tls-ca-bundle.pem" ] && npm config set cafile "/usr/local/share/ca-certificates/tls-ca-bundle.pem"; }; \
-        [ -n "${HTTPS_PROXY}" ] && npm config set https-proxy "${HTTPS_PROXY}"; \
-        [ -n "${HTTP_PROXY}" ] && npm config set proxy "${HTTP_PROXY}"; \
-        [ -n "${NO_PROXY}" ] && npm config set noproxy "${NO_PROXY}"; \
-        true; \
-    } \
-    && npm install -g yarn \
-    && echo "Versions:" \
-    && node -v && npm -v && yarn -v
-
-
-
-ENV PATH="${NVM_DIR}/versions/node/v${NODE_VERSION}/bin:${PATH}"
 
 RUN echo "[global]" > /etc/pip.conf && \
     if [ -n "$GLOBAL_INDEX" ]; then \
@@ -107,9 +41,6 @@ RUN echo "[global]" > /etc/pip.conf && \
     if [ -n "$GLOBAL_INDEX_URL" ]; then \
       echo "index-url = ${GLOBAL_INDEX_URL}" >> /etc/pip.conf; \
     fi
-
-# Install golang
-RUN dnf install golang -y
 
 RUN dnf group install -y "Development Tools"
 
@@ -149,26 +80,20 @@ RUN dnf -y update && \
 RUN ACCEPT_EULA=Y dnf install -y msodbcsql17 || \
     echo "[WARNING] msodbcsql17 not available — skipping"
 
-ENV PYTHONIOENCODING=utf-8
-ENV LANG=C.UTF-8
-ENV LC_ALL=C.UTF-8
-
-# Ensure Python 3.11 is set as default and pip is ready
-RUN alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
+# -----------------------------
+# Install Python 3.11 and set as default
+# -----------------------------
+RUN dnf install -y \
+        python3.11 \
+        python3.11-pip \
+        python3.11-devel && \
+    alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
     alternatives --set python3 /usr/bin/python3.11 && \
-    python3 -m ensurepip && \
-    python3 -m pip install --no-cache-dir --upgrade pip
+    python3 -m ensurepip
 
-# Copy the frozen requirements file
-COPY frozen_requirements.txt /tmp/frozen_requirements.txt
-
-# Fail if the requirements file is missing
-RUN test -f /tmp/frozen_requirements.txt || (echo "Missing frozen_requirements.txt. Run: pip freeze > frozen_requirements.txt" && exit 1)
-
-# Set up pip, setuptools, and wheel first
-RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools
-
-# THEN install dependencies
+# -----------------------------
+# Install Python requirements
+# -----------------------------
 COPY frozen_requirements.txt /tmp/frozen_requirements.txt
 RUN test -f /tmp/frozen_requirements.txt || (echo "Missing frozen_requirements.txt. Run: pip freeze > frozen_requirements.txt" && exit 1)
 RUN python3 -m pip install --no-cache-dir -r /tmp/frozen_requirements.txt
