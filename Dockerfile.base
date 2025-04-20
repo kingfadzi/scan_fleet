@@ -81,7 +81,7 @@ RUN ACCEPT_EULA=Y dnf install -y msodbcsql17 || \
     echo "[WARNING] msodbcsql17 not available — skipping"
 
 # -----------------------------
-# Install Python 3.11 and set as default
+# Install Python 3.11 and pin pip/setuptools
 # -----------------------------
 RUN dnf install -y \
         python3.11 \
@@ -89,14 +89,15 @@ RUN dnf install -y \
         python3.11-devel && \
     alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
     alternatives --set python3 /usr/bin/python3.11 && \
-    python3 -m ensurepip
+    python3.11 -m ensurepip && \
+    python3.11 -m pip install --no-cache-dir pip==23.3.1 setuptools==68.2.2
 
 # -----------------------------
 # Install Python requirements
 # -----------------------------
 COPY frozen_requirements.txt /tmp/frozen_requirements.txt
 RUN test -f /tmp/frozen_requirements.txt || (echo "Missing frozen_requirements.txt. Run: pip freeze > frozen_requirements.txt" && exit 1)
-RUN python3 -m pip install --no-cache-dir -r /tmp/frozen_requirements.txt
+RUN python3.11 -m pip install --no-cache-dir -r /tmp/frozen_requirements.txt
 
 # FIX: Pre-create UI build directory and set correct permissions
 RUN mkdir -p /usr/local/lib/python3.11/site-packages/prefect/server/ui_build && \
