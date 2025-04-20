@@ -119,10 +119,9 @@ RUN dnf install -y \
     python3.11 -m pip install --no-cache-dir --upgrade setuptools
 
 
-# Python requirements
-COPY requirements.txt /tmp/frozen_requirements.txt
-RUN test -f /tmp/frozen_requirements.txt || (echo "Missing frozen_requirements.txt. Run: pip freeze > frozen_requirements.txt" && exit 1)
-RUN python3.11 -m pip install --no-cache-dir -r /tmp/frozen_requirements.txt
+COPY requirements.txt /tmp/requirements.txt
+RUN test -f /tmp/requirements.txt || (echo "Missing requirements.txt. Run: pip freeze > requirements.txt" && exit 1)
+RUN python3.11 -m pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Prefect UI setup
 RUN mkdir -p /usr/local/lib/python3.11/site-packages/prefect/server/ui_build && \
