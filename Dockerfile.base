@@ -99,26 +99,18 @@ RUN ACCEPT_EULA=Y dnf install -y msodbcsql17 || \
 # -----------------------------
 # Python environment
 # -----------------------------
-
-RUN python3.11 -m ensurepip && \
-    python3.11 -m pip install --no-cache-dir --upgrade pip && \
-    python3.11 -m pip install --no-cache-dir --upgrade setuptools
-
-
-# -----------------------------
-# Python environment
-# -----------------------------
 RUN dnf install -y \
         python3.11 \
         python3.11-pip \
         python3.11-devel && \
     alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
     alternatives --set python3 /usr/bin/python3.11 && \
-    python3.11 -m ensurepip && \
-    python3.11 -m pip install --no-cache-dir --upgrade pip && \
-    python3.11 -m pip install --no-cache-dir --upgrade setuptools
+    python3.11 -m ensurepip
 
+# Pin pip + setuptools BEFORE installing requirements
+RUN python3.11 -m pip install --no-cache-dir --upgrade pip setuptools==78.1.0 wheel
 
+# Copy and install requirements
 COPY requirements.txt /tmp/requirements.txt
 RUN test -f /tmp/requirements.txt || (echo "Missing requirements.txt. Run: pip freeze > requirements.txt" && exit 1)
 RUN python3.11 -m pip install --no-cache-dir -r /tmp/requirements.txt
