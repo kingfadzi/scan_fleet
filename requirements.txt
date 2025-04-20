@@ -19,10 +19,10 @@ pydantic
 prefect-github
 pipreqs
 pip-tools
-checkov
 lxml
 pydantic>=2.0
 psutil
 filelock
 botocore==1.35.99
 aioodbc
+pyodbc
