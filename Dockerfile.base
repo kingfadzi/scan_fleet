@@ -43,6 +43,13 @@ RUN if [ -f /tmp/ca.pem ]; then \
     fi
 
 
+COPY krb5.conf /tmp/krb5.conf.optional
+RUN if [ -f /tmp/krb5.conf.optional ];  \
+    then  \
+      mv /tmp/krb5.conf.optional /etc/krb5.conf \
+    else  \
+      echo "No krb5.conf - skipping"; fi
+
 RUN mkdir -p /tmp/keys && \
     chmod 700 /tmp/keys && \
     chown -R ${HOST_UID}:${HOST_GID}  /tmp/keys
@@ -192,6 +199,9 @@ RUN chmod 700 /home/prefect/.ssh && \
 COPY --chown=prefect:prefect --chmod=644 java.cacerts* /home/prefect/
 COPY --chown=prefect:prefect --chmod=644 odbc.ini /etc/odbc.ini
 COPY --chown=prefect:prefect --chmod=644 odbcinst.ini /etc/odbcinst.ini
+
+# Copy Kerberos config into container
+COPY krb5.conf* /etc/krb5.conf
 
 # -----------------------------
 # Pip Configuration
