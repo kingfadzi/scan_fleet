@@ -6,7 +6,7 @@ ENV PREFECT_VERSION="3.2.1" \
 ARG GLOBAL_CERT
 ARG GLOBAL_INDEX
 ARG GLOBAL_INDEX_URL
-ARG GLOBAL_INDEX_DOWNLOAD
+ARG SOURCE_TARBALL_URLS
 ARG HOST_UID
 ARG HOST_GID
 ARG TOOLS_TARBALL_URL
@@ -114,13 +114,19 @@ ENV PIP_ONLY_BINARY=:all: \
 # Upgrade pip and install base packages
 RUN python3.11 -m pip install --no-cache-dir --upgrade pip setuptools==78.1.0 wheel
 
-# Build and install peewee from source (tarball in mirror)
-RUN curl -L "${GLOBAL_INDEX_DOWNLOAD}/packages/source/p/peewee/peewee-3.14.4.tar.gz" -o /tmp/peewee.tar.gz && \
-    tar -xzf /tmp/peewee.tar.gz -C /tmp && \
-    cd /tmp/peewee-3.14.4 && \
-    python3.11 -m pip wheel . -w dist && \
-    python3.11 -m pip install --no-cache-dir dist/peewee-3.14.4-*.whl && \
-    cd / && rm -rf /tmp/peewee*
+
+
+RUN for url in $SOURCE_TARBALL_URLS; do \
+      filename=$(basename "$url"); \
+      echo "Downloading $filename from $url..." && \
+      curl -fsSL "$url" -o "/tmp/$filename" && \
+      tar -xzf "/tmp/$filename" -C /tmp && \
+      pkgdir=$(tar -tf "/tmp/$filename" | head -n 1 | cut -d/ -f1) && \
+      cd "/tmp/$pkgdir" && \
+      python3.11 -m pip wheel . -w dist && \
+      python3.11 -m pip install --no-cache-dir dist/*.whl && \
+      cd / && rm -rf "/tmp/$filename" "/tmp/$pkgdir"; \
+    done
 
 # Install requirements
 COPY requirements.txt /tmp/requirements.txt
