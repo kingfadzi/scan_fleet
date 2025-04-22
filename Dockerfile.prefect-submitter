@@ -6,16 +6,11 @@ WORKDIR /app
 ENV FLOW_GIT_STORAGE=""
 ENV FLOW_GIT_BRANCH="main"
 
-# Install git and supervisor using dnf
-RUN dnf install -y git supervisor && \
-dnf clean all && \
-rm -rf /var/cache/dnf
+# Install supervisor using pip
+RUN pip install --no-cache-dir supervisor
 
 # Clone the repo based on env vars
 RUN git clone --branch ${FLOW_GIT_BRANCH} ${FLOW_GIT_STORAGE} /app
-
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy supervisor config (assuming it's part of the repo)
 COPY supervisord.conf /etc/supervisord.conf
