@@ -46,11 +46,6 @@ set -a
 . "$ENV_FILE"
 set +a
 
-if [ -z "$WORK_POOL_CONCURRENCY" ]; then
-    echo "WORK_POOL_CONCURRENCY not defined in $ENV_FILE, using default concurrency limit 2."
-    WORK_POOL_CONCURRENCY=2
-fi
-
 build_all() {
     echo "Building all images..."
     BUILD_ARGS="--build-arg GLOBAL_INDEX=${GLOBAL_INDEX} \
