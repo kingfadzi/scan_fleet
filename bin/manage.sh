@@ -1,146 +1,67 @@
 #!/bin/bash
+set -e
 
-set -e  # Exit on error
-
-# Function to show usage
 usage() {
     echo "Usage:"
     echo "  $0 build <env>"
-    echo "  $0 start server <env>"
-    echo "  $0 start worker <pool-name> <env> <instance>"
-    echo "  $0 stop server <env>"
-    echo "  $0 stop worker <pool-name> <env> <instance>"
-    echo "  $0 restart server <env>"
-    echo "  $0 restart worker <pool-name> <env> <instance>"
+    echo "  $0 server <start|stop|restart> <env>"
+    echo "  $0 worker <start|stop|restart> <env>"
+    echo "  $0 all <start|stop|restart> <env>"
     exit 1
 }
 
-# Ensure at least one argument is passed
-if [ $# -lt 1 ]; then
-    usage
-fi
-
-COMMAND=$1
-SERVICE=$2
-WORK_POOL=""
-INSTANCE=""
-ENV_FILE=""
-
-echo "DEBUG: COMMAND='$COMMAND', SERVICE='$SERVICE', All Args: $@"
-
-# For build command, require an environment parameter and load its .env file
-if [[ "$COMMAND" == "build" ]]; then
-    if [ $# -lt 2 ]; then
-        echo "ERROR: Missing environment argument for build."
+# Parse arguments
+if [ "$1" = "build" ]; then
+    if [ $# -ne 2 ]; then
         usage
     fi
-    ENV_FILE=".env-$2"
-    echo "DEBUG: [Build] ENV_FILE='$ENV_FILE'"
-    if [ ! -f "$ENV_FILE" ]; then
-        echo "ERROR: Environment file $ENV_FILE not found!"
-        exit 1
+    COMMAND="build"
+    ENV_NAME=$2
+else
+    if [ $# -ne 3 ]; then
+        usage
     fi
-    # Export variables from the env file so they can be used as build args
-    set -a
-    . "$ENV_FILE"
-    set +a
-fi
-
-# For start/restart commands, load the env file and variables
-if [[ "$COMMAND" == "start" || "$COMMAND" == "restart" ]]; then
-    if [[ "$SERVICE" == "worker" ]]; then
-        if [ $# -lt 5 ]; then
-            echo "ERROR: Missing work pool name, environment, or instance ID."
-            usage
-        fi
-        WORK_POOL=$3
-        ENV_FILE=".env-$4"
-        INSTANCE=$5
-        echo "DEBUG: [Start/Restart Worker] WORK_POOL='$WORK_POOL', INSTANCE='$INSTANCE', ENV_FILE='$ENV_FILE'"
-    else
-        if [ $# -lt 3 ]; then
-            echo "ERROR: Missing environment argument."
-            usage
-        fi
-        ENV_FILE=".env-$3"
-        echo "DEBUG: [Start/Restart Server] ENV_FILE='$ENV_FILE'"
+    TARGET=$1
+    ACTION=$2
+    ENV_NAME=$3
+    if [[ "$TARGET" != "server" && "$TARGET" != "worker" && "$TARGET" != "all" ]]; then
+        usage
     fi
-
-    if [ -z "$ENV_FILE" ] || [ ! -f "$ENV_FILE" ]; then
-        echo "ERROR: Environment file $ENV_FILE not found!"
-        exit 1
+    if [[ "$ACTION" != "start" && "$ACTION" != "stop" && "$ACTION" != "restart" ]]; then
+        usage
     fi
 fi
 
-# For stop commands, handle server and worker separately
-if [ "$COMMAND" == "stop" ]; then
-    if [ "$SERVICE" == "worker" ]; then
-        if [ $# -lt 5 ]; then
-            echo "ERROR: Missing work pool name, environment, or instance ID for stopping worker."
-            usage
-        fi
-        WORK_POOL=$3
-        ENV_FILE=".env-$4"
-        INSTANCE=$5
-        echo "DEBUG: [Stop Worker] WORK_POOL='$WORK_POOL', INSTANCE='$INSTANCE', ENV_FILE='$ENV_FILE'"
-    elif [ "$SERVICE" == "server" ]; then
-        if [ $# -lt 3 ]; then
-            echo "ERROR: Missing environment argument for stopping server."
-            usage
-        fi
-        ENV_FILE=".env-$3"
-        echo "DEBUG: [Stop Server] ENV_FILE='$ENV_FILE'"
-        if [ ! -f "$ENV_FILE" ]; then
-            echo "ERROR: Environment file $ENV_FILE not found!"
-            exit 1
-        fi
-    fi
+ENV_FILE=".env-${ENV_NAME}"
+
+if [ ! -f "$ENV_FILE" ]; then
+    echo "ERROR: Environment file '$ENV_FILE' not found!"
+    exit 1
 fi
 
-# For worker start/restart commands, ensure the Docker network exists
-if [[ "$SERVICE" == "worker" && ( "$COMMAND" == "start" || "$COMMAND" == "restart" ) ]]; then
-    if ! docker network ls | grep -q "scan_fleet_scannet"; then
-        echo "DEBUG: Creating Docker network: scan_fleet_scannet"
-        docker network create scan_fleet_scannet
-    fi
+echo "Loading environment file: $ENV_FILE"
+set -a
+. "$ENV_FILE"
+set +a
+
+if [ -z "$WORK_POOL_CONCURRENCY" ]; then
+    echo "WORK_POOL_CONCURRENCY not defined in $ENV_FILE, using default concurrency limit 2."
+    WORK_POOL_CONCURRENCY=2
 fi
 
-# For worker commands, define a unique project name based on WORK_POOL and INSTANCE.
-if [[ "$SERVICE" == "worker" ]]; then
-    PROJECT_NAME="prefect-worker-${WORK_POOL}-${INSTANCE}"
-    echo "DEBUG: Generated PROJECT_NAME: '$PROJECT_NAME'"
-fi
-
-# Function to build all images with build args from the env file
 build_all() {
     echo "Building all images..."
-
-    set -a
-    . $ENV_FILE
-    set +a
-
-    # Generate build arguments dynamically from .env
-    # BUILD_ARGS=$(awk -F= '!/^#/ && NF {print "--build-arg " $1 "=" $2}' .env | tr '\n' ' ')
-    # Compose the build arguments using variables loaded from the env file
-
     BUILD_ARGS="--build-arg GLOBAL_INDEX=${GLOBAL_INDEX} \
 --build-arg GLOBAL_INDEX_URL=${GLOBAL_INDEX_URL} \
+--build-arg SOURCE_TARBALL_URLS=${SOURCE_TARBALL_URLS} \
 --build-arg GLOBAL_CERT=${GLOBAL_CERT} \
 --build-arg HOST_UID=${HOST_UID} \
 --build-arg HOST_GID=${HOST_GID} \
---build-arg GRADLE_DISTRIBUTIONS_BASE_URL=${GRADLE_DISTRIBUTIONS_BASE_URL} \
 --build-arg GRADLE_VERSIONS='${GRADLE_VERSIONS}' \
 --build-arg DEFAULT_GRADLE_VERSION=${DEFAULT_GRADLE_VERSION} \
 --build-arg TOOLS_TARBALL_URL=${TOOLS_TARBALL_URL} \
---build-arg NVM_VERSION=${NVM_VERSION} \
---build-arg NODE_VERSION=${NODE_VERSION} \
---build-arg NVM_NODEJS_ORG_MIRROR=${NVM_NODEJS_ORG_MIRROR} \
---build-arg NVM_PRIVATE_REPO=${NVM_PRIVATE_REPO} \
---build-arg NPM_REGISTRY=${NPM_REGISTRY} \
---build-arg SASS_BINARY=${SASS_BINARY} \
 --build-arg HTTP_PROXY=${HTTP_PROXY} \
 --build-arg HTTPS_PROXY=${HTTPS_PROXY} \
---build-arg NPM_STRICT_SSL=${NPM_STRICT_SSL} \
 --build-arg NO_PROXY=${NO_PROXY}"
 
     docker build --no-cache $BUILD_ARGS -t scanfleet-base -f Dockerfile.base .
@@ -149,89 +70,209 @@ build_all() {
     echo "All images built successfully!"
 }
 
-# Function to start Prefect Server
+# Server control functions
 start_server() {
-    echo "Building Prefect Server image..."
-    docker build --no-cache -t scanfleet-prefect-server -f Dockerfile.prefect-server .
     echo "Starting Prefect Server..."
-    # Source the environment file so variables (like CONTAINER_HOME) override those in .env
-    set -a
-    . "$ENV_FILE"
-    set +a
     docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml up -d
-    echo "Prefect Server started successfully!"
-}
 
-# Function to start Prefect Worker
-start_worker() {
-    echo "Building Prefect Worker image..."
-    docker build --no-cache -t scanfleet-prefect-worker -f Dockerfile.prefect-worker .
-    echo "DEBUG: Starting Prefect Worker in pool: '$WORK_POOL' (Instance: '$INSTANCE')"
-    # Source the environment file to ensure variables are in the shell for substitution
-    set -a
-    . "$ENV_FILE"
-    set +a
-    # Explicitly pass WORK_POOL and INSTANCE to Docker Compose
-    env WORK_POOL="$WORK_POOL" INSTANCE="$INSTANCE" \
-      docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml up -d
-    echo "Prefect Worker started successfully in pool: '$WORK_POOL' (Instance: '$INSTANCE')"
-}
-
-# Function to stop services
-stop_service() {
-    if [[ "$SERVICE" == "worker" ]]; then
-        echo "DEBUG: Stopping worker container for pool '$WORK_POOL', instance '$INSTANCE'"
-        echo "DEBUG: Using project name: '$PROJECT_NAME'"
-        # Source the environment file so variables are set for substitution
-        set -a
-        . "$ENV_FILE"
-        set +a
-        env WORK_POOL="$WORK_POOL" INSTANCE="$INSTANCE" \
-          docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml down
-    else
-        echo "Stopping Prefect Server..."
-        # Source the environment file to ensure CONTAINER_HOME (and others) are exported in the shell
-        set -a
-        . "$ENV_FILE"
-        set +a
-        docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml down
+    if ! docker network ls | grep -q scan_fleet_scannet; then
+        docker network create scan_fleet_scannet >/dev/null
     fi
-    echo "$SERVICE stopped."
-}
 
-# Function to restart services
-restart_service() {
-    stop_service
-    if [ "$SERVICE" == "server" ]; then
-        start_server
-    elif [ "$SERVICE" == "worker" ]; then
-        start_worker
-    else
-        usage
-    fi
-}
+    if [ -n "$WORKER_POOLS" ]; then
+        [ -z "$PREFECT_API_URL" ] && { echo "ERROR: PREFECT_API_URL undefined"; exit 1; }
 
-# Execute based on the command
-case "$COMMAND" in
-    build)
-        build_all
-        ;;
-    start)
-        if [ "$SERVICE" == "server" ]; then
-            start_server
-        elif [ "$SERVICE" == "worker" ]; then
-            start_worker
-        else
-            usage
+        echo "Connecting to: ${PREFECT_API_URL}"
+        echo -n "Waiting for server "
+        for _ in {1..15}; do
+            if curl -L --silent --fail --output /dev/null "${PREFECT_API_URL}/health"; then
+                echo " Ready!"
+                break
+            fi
+            echo -n "."
+            sleep 2
+        done
+
+        if ! curl -L --silent --fail "${PREFECT_API_URL}/health"; then
+            echo "ERROR: Server failed to start"
+            exit 1
         fi
-        ;;
-    stop)
-        stop_service
-        ;;
-    restart)
-        restart_service
-        ;;
-    *)
-        usage
-        ;;
-esac
+
+        IFS=',' read -ra POOLS <<< "$WORKER_POOLS"
+        for pool_entry in "${POOLS[@]}"; do
+            IFS=':' read -r pool_name instance_count pool_concurrency <<< "$pool_entry"
+
+            if [ -z "$pool_name" ] || [ -z "$instance_count" ] || [ -z "$pool_concurrency" ]; then
+                echo "ERROR: Invalid WORKER_POOLS entry '${pool_entry}'."
+                echo "       Expected format: pool_name:instance_count:concurrency_limit"
+                echo "       Example: submitter-pool:5:10"
+                exit 1
+            fi
+
+            if ! [[ "$instance_count" =~ ^[0-9]+$ ]]; then
+                echo "ERROR: Instance count must be numeric. Got '${instance_count}' in entry '${pool_entry}'."
+                exit 1
+            fi
+
+            if ! [[ "$pool_concurrency" =~ ^[0-9]+$ ]]; then
+                echo "ERROR: Concurrency limit must be numeric. Got '${pool_concurrency}' in entry '${pool_entry}'."
+                exit 1
+            fi
+
+            echo "Recreating work pool '${pool_name}' with concurrency ${pool_concurrency}:"
+
+            delete_response=$(curl -L -sS -o /dev/null -w "%{http_code}" -X DELETE \
+                "${PREFECT_API_URL}/work_pools/${pool_name}")
+
+            case $delete_response in
+                204|200)
+                    echo "Existing work pool ${pool_name} removed."
+                    ;;
+                404)
+                    echo "No existing work pool ${pool_name} to remove."
+                    ;;
+                *)
+                    echo "Warning: Failed to delete work pool ${pool_name} (HTTP status $delete_response)"
+                    ;;
+            esac
+
+            create_response=$(curl -L -sS -o /dev/null -w "%{http_code}" -X POST \
+                "${PREFECT_API_URL}/work_pools" \
+                --header "Content-Type: application/json" \
+                --data-raw "{
+                    \"name\": \"${pool_name}\",
+                    \"type\": \"process\",
+                    \"base_job_template\": {},
+                    \"concurrency_limit\": ${pool_concurrency}
+                }")
+
+            case $create_response in
+                201)
+                    echo "Work pool ${pool_name} recreated successfully."
+                    ;;
+                *)
+                    echo "Warning: Failed to recreate work pool ${pool_name} (HTTP status $create_response)"
+                    ;;
+            esac
+        done
+    fi
+}
+
+stop_server() {
+    echo "Stopping Prefect Server..."
+    docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-server.yml down
+}
+
+restart_server() {
+    stop_server
+    start_server
+}
+
+# Worker control functions
+start_workers() {
+    if [ -z "$WORKER_POOLS" ]; then
+        echo "WARNING: WORKER_POOLS variable not defined in $ENV_FILE. No workers to start."
+        return
+    fi
+
+    echo "Starting Prefect Workers..."
+    IFS=',' read -ra POOLS <<< "$WORKER_POOLS"
+    for pool_entry in "${POOLS[@]}"; do
+        IFS=':' read -r pool_name instance_count pool_concurrency <<< "$pool_entry"
+
+        if [ -z "$pool_name" ] || [ -z "$instance_count" ] || [ -z "$pool_concurrency" ]; then
+            echo "ERROR: Invalid WORKER_POOLS entry '${pool_entry}'."
+            echo "       Expected format: pool_name:instance_count:concurrency_limit"
+            echo "       Example: submitter-pool:5:10"
+            exit 1
+        fi
+
+        if ! [[ "$instance_count" =~ ^[0-9]+$ ]]; then
+            echo "ERROR: Instance count must be numeric. Got '${instance_count}' in entry '${pool_entry}'."
+            exit 1
+        fi
+
+        for (( i=1; i<=instance_count; i++ )); do
+            PROJECT_NAME="prefect-worker-${pool_name}-${i}"
+            echo "Starting worker instance $i for pool '${pool_name}' (Project: $PROJECT_NAME)..."
+            env WORK_POOL="$pool_name" WORKER_NAME="$ENV_NAME" INSTANCE="$i" \
+                docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml up -d
+        done
+    done
+}
+
+stop_workers() {
+    if [ -z "$WORKER_POOLS" ]; then
+        echo "No workers defined to stop."
+        return
+    fi
+
+    IFS=',' read -ra POOLS <<< "$WORKER_POOLS"
+    for pool_entry in "${POOLS[@]}"; do
+        IFS=':' read -r pool_name instance_count pool_concurrency <<< "$pool_entry"
+
+        if [ -z "$pool_name" ] || [ -z "$instance_count" ] || [ -z "$pool_concurrency" ]; then
+            echo "ERROR: Invalid WORKER_POOLS entry '${pool_entry}'."
+            exit 1
+        fi
+
+        if ! [[ "$instance_count" =~ ^[0-9]+$ ]]; then
+            echo "ERROR: Instance count must be numeric. Got '${instance_count}' in entry '${pool_entry}'."
+            exit 1
+        fi
+
+        for (( i=1; i<=instance_count; i++ )); do
+            PROJECT_NAME="prefect-worker-${pool_name}-${i}"
+            echo "Stopping worker instance $i for pool '${pool_name}' (Project: $PROJECT_NAME)..."
+            env WORK_POOL="$pool_name" WORKER_NAME="$ENV_NAME" INSTANCE="$i" \
+                docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml down
+        done
+    done
+}
+
+restart_workers() {
+    stop_workers
+    start_workers
+}
+
+start_all() {
+    start_server
+    start_workers
+}
+
+stop_all() {
+    stop_server
+    stop_workers
+}
+
+restart_all() {
+    stop_all
+    start_all
+}
+
+if [ "$COMMAND" = "build" ]; then
+    build_all
+elif [ "$TARGET" = "server" ]; then
+    case "$ACTION" in
+        start)   start_server ;;
+        stop)    stop_server ;;
+        restart) restart_server ;;
+        *)       usage ;;
+    esac
+elif [ "$TARGET" = "worker" ]; then
+    case "$ACTION" in
+        start)   start_workers ;;
+        stop)    stop_workers ;;
+        restart) restart_workers ;;
+        *)       usage ;;
+    esac
+elif [ "$TARGET" = "all" ]; then
+    case "$ACTION" in
+        start)   start_all ;;
+        stop)    stop_all ;;
+        restart) restart_all ;;
+        *)       usage ;;
+    esac
+else
+    usage
+fi
