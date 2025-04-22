@@ -4,7 +4,7 @@ set -e
 usage() {
     echo "Usage:"
     echo "  $0 build <env>"
-    echo "  $0 <start|stop|restart> <server|worker|all> <env>"
+    echo "  $0 <start|stop|restart> <server|worker|submitter|all> <env>"
     exit 1
 }
 
@@ -21,18 +21,17 @@ else
         usage
     fi
     ACTION=$1             # start | stop | restart
-    TARGET=$2             # server | worker | all
+    TARGET=$2             # server | worker | submitter | all
     ENV_NAME=$3           # env name
 
     if [[ "$ACTION" != "start" && "$ACTION" != "stop" && "$ACTION" != "restart" ]]; then
         usage
     fi
 
-    if [[ "$TARGET" != "server" && "$TARGET" != "worker" && "$TARGET" != "all" ]]; then
+    if [[ "$TARGET" != "server" && "$TARGET" != "worker" && "$TARGET" != "submitter" && "$TARGET" != "all" ]]; then
         usage
     fi
 fi
-
 
 ENV_FILE=".env-${ENV_NAME}"
 
@@ -59,11 +58,14 @@ build_all() {
 --build-arg TOOLS_TARBALL_URL=${TOOLS_TARBALL_URL} \
 --build-arg HTTP_PROXY=${HTTP_PROXY} \
 --build-arg HTTPS_PROXY=${HTTPS_PROXY} \
---build-arg NO_PROXY=${NO_PROXY}"
+--build-arg NO_PROXY=${NO_PROXY} \
+--build-arg FLOW_GIT_STORAGE=${FLOW_GIT_STORAGE} \
+--build-arg FLOW_GIT_BRANCH=${FLOW_GIT_BRANCH}"
 
     docker build --no-cache $BUILD_ARGS -t scanfleet-base -f Dockerfile.base .
     docker build --no-cache $BUILD_ARGS -t scanfleet-prefect-server -f Dockerfile.prefect-server .
     docker build --no-cache $BUILD_ARGS -t scanfleet-prefect-worker -f Dockerfile.prefect-worker .
+    docker build --no-cache $BUILD_ARGS -t scanfleet-prefect-submitter -f Dockerfile.prefect-submitter .
     echo "All images built successfully!"
 }
 
@@ -232,14 +234,33 @@ restart_workers() {
     start_workers
 }
 
+# Submitter control functions
+start_submitter() {
+    echo "Starting Submitter..."
+    docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-submitter.yml up -d
+}
+
+stop_submitter() {
+    echo "Stopping Submitter..."
+    docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-submitter.yml down
+}
+
+restart_submitter() {
+    stop_submitter
+    start_submitter
+}
+
+# Combined control
 start_all() {
     start_server
     start_workers
+    start_submitter
 }
 
 stop_all() {
     stop_server
     stop_workers
+    stop_submitter
 }
 
 restart_all() {
@@ -247,6 +268,7 @@ restart_all() {
     start_all
 }
 
+# Dispatch logic
 if [ "$COMMAND" = "build" ]; then
     build_all
 elif [ "$TARGET" = "server" ]; then
@@ -261,6 +283,13 @@ elif [ "$TARGET" = "worker" ]; then
         start)   start_workers ;;
         stop)    stop_workers ;;
         restart) restart_workers ;;
+        *)       usage ;;
+    esac
+elif [ "$TARGET" = "submitter" ]; then
+    case "$ACTION" in
+        start)   start_submitter ;;
+        stop)    stop_submitter ;;
+        restart) restart_submitter ;;
         *)       usage ;;
     esac
 elif [ "$TARGET" = "all" ]; then

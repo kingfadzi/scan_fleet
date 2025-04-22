@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  submitters:
+    build: .
+    container_name: submitters
+    environment:
+      - FLOW_GIT_STORAGE=https://github.com/kingfadzi/scan_scheduler.git
+      - FLOW_GIT_BRANCH=plugins
+      - SUBMITTER_ENV=prod
+      # BATCH_PROCESSOR_DEPLOYMENT_NAME is passed individually in supervisord.conf
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    volumes:
+      - ./checkpoints:/app/checkpoints
+      - ./logs:/var/log

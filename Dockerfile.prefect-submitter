@@ -1,0 +1,22 @@
+FROM scanfleet-base:latest
+
+WORKDIR /app
+
+# Required env vars
+ENV FLOW_GIT_STORAGE=""
+ENV FLOW_GIT_BRANCH="main"
+
+# Install git and supervisor
+RUN apt-get update && apt-get install -y git supervisor && rm -rf /var/lib/apt/lists/*
+
+# Clone the repo based on env vars
+RUN git clone --branch ${FLOW_GIT_BRANCH} ${FLOW_GIT_STORAGE} /app
+
+# Install Python dependencies
+RUN pip install -r requirements.txt
+RUN pip install supervisor
+
+# Copy supervisor config (assuming it's part of the repo)
+COPY supervisord.conf /etc/supervisord.conf
+
+CMD ["/usr/local/bin/supervisord", "-c", "/etc/supervisord.conf"]
