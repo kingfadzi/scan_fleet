@@ -1,8 +1,8 @@
-version: "3.8"
-
 services:
   submitters:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.prefect-submitter
     container_name: submitters
     environment:
       - FLOW_GIT_STORAGE=https://github.com/kingfadzi/scan_scheduler.git
