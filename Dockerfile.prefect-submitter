@@ -2,9 +2,9 @@ FROM scanfleet-base:latest
 
 WORKDIR /app
 
-# Required env vars
-ENV FLOW_GIT_STORAGE=""
-ENV FLOW_GIT_BRANCH="main"
+# Define build arguments
+ARG FLOW_GIT_STORAGE=""
+ARG FLOW_GIT_BRANCH="main"
 
 # Install supervisor using pip
 RUN pip install --no-cache-dir supervisor
