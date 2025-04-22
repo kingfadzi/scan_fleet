@@ -13,7 +13,6 @@ RUN apt-get update && apt-get install -y git supervisor && rm -rf /var/lib/apt/l
 RUN git clone --branch ${FLOW_GIT_BRANCH} ${FLOW_GIT_STORAGE} /app
 
 # Install Python dependencies
-RUN pip install -r requirements.txt
 RUN pip install supervisor
 
 # Copy supervisor config (assuming it's part of the repo)
