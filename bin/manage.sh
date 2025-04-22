@@ -4,13 +4,11 @@ set -e
 usage() {
     echo "Usage:"
     echo "  $0 build <env>"
-    echo "  $0 server <start|stop|restart> <env>"
-    echo "  $0 worker <start|stop|restart> <env>"
-    echo "  $0 all <start|stop|restart> <env>"
+    echo "  $0 <start|stop|restart> <server|worker|all> <env>"
     exit 1
 }
 
-# Parse arguments
+# Handle 'build' separately
 if [ "$1" = "build" ]; then
     if [ $# -ne 2 ]; then
         usage
@@ -18,19 +16,23 @@ if [ "$1" = "build" ]; then
     COMMAND="build"
     ENV_NAME=$2
 else
+    # Handle start/stop/restart logic
     if [ $# -ne 3 ]; then
         usage
     fi
-    TARGET=$1
-    ACTION=$2
-    ENV_NAME=$3
-    if [[ "$TARGET" != "server" && "$TARGET" != "worker" && "$TARGET" != "all" ]]; then
-        usage
-    fi
+    ACTION=$1             # start | stop | restart
+    TARGET=$2             # server | worker | all
+    ENV_NAME=$3           # env name
+
     if [[ "$ACTION" != "start" && "$ACTION" != "stop" && "$ACTION" != "restart" ]]; then
         usage
     fi
+
+    if [[ "$TARGET" != "server" && "$TARGET" != "worker" && "$TARGET" != "all" ]]; then
+        usage
+    fi
 fi
+
 
 ENV_FILE=".env-${ENV_NAME}"
 
