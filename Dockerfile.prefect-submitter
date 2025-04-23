@@ -6,6 +6,9 @@ WORKDIR /app
 ARG FLOW_GIT_STORAGE=""
 ARG FLOW_GIT_BRANCH="main"
 
+ENV FLOW_GIT_STORAGE=FLOW_GIT_STORAGE
+ENV FLOW_GIT_BRANCH=$FLOW_GIT_BRANCH
+
 # Install supervisor using pip
 RUN pip install --no-cache-dir supervisor
 
