@@ -47,6 +47,10 @@ set +a
 
 build_all() {
     echo "Building all images..."
+
+    SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+    BUILD_CONTEXT="${SCRIPT_DIR}/.."
+
     BUILD_ARGS="--build-arg GLOBAL_INDEX=${GLOBAL_INDEX} \
 --build-arg GLOBAL_INDEX_URL=${GLOBAL_INDEX_URL} \
 --build-arg SOURCE_TARBALL_URLS=${SOURCE_TARBALL_URLS} \
@@ -62,10 +66,11 @@ build_all() {
 --build-arg FLOW_GIT_STORAGE=${FLOW_GIT_STORAGE} \
 --build-arg FLOW_GIT_BRANCH=${FLOW_GIT_BRANCH}"
 
-    docker build --no-cache $BUILD_ARGS -t scanfleet-base -f Dockerfile.base .
-    docker build --no-cache $BUILD_ARGS -t scanfleet-prefect-server -f Dockerfile.prefect-server .
-    docker build --no-cache $BUILD_ARGS -t scanfleet-prefect-worker -f Dockerfile.prefect-worker .
-    docker build --no-cache $BUILD_ARGS -t scanfleet-prefect-submitter -f Dockerfile.prefect-submitter .
+    docker build --no-cache $BUILD_ARGS -t scanfleet-base -f "$BUILD_CONTEXT/Dockerfile.base" "$BUILD_CONTEXT"
+    docker build --no-cache $BUILD_ARGS -t scanfleet-prefect-server -f "$BUILD_CONTEXT/Dockerfile.prefect-server" "$BUILD_CONTEXT"
+    docker build --no-cache $BUILD_ARGS -t scanfleet-prefect-worker -f "$BUILD_CONTEXT/Dockerfile.prefect-worker" "$BUILD_CONTEXT"
+    docker build --no-cache $BUILD_ARGS -t scanfleet-prefect-submitter -f "$BUILD_CONTEXT/Dockerfile.prefect-submitter" "$BUILD_CONTEXT"
+
     echo "All images built successfully!"
 }
 
