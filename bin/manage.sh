@@ -241,8 +241,11 @@ restart_workers() {
 
 # Submitter control functions
 start_submitter() {
-    echo "Starting Submitter..."
-    docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-submitter.yml up -d
+    echo "Building Submitter image..."
+    docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-submitter.yml build --no-cache submitters
+
+    echo "Starting Submitter container..."
+    docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-submitter.yml up -d submitters
 }
 
 stop_submitter() {
