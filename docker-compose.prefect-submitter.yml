@@ -1,7 +1,6 @@
-version: "3.8"
-
 services:
   submitters:
+    image: scanfleet-prefect-submitters
     build:
       context: .
       dockerfile: Dockerfile.prefect-submitter
