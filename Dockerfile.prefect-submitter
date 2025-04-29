@@ -5,20 +5,19 @@ ARG FLOW_GIT_BRANCH
 
 ENV FLOW_GIT_STORAGE=${FLOW_GIT_STORAGE}
 ENV FLOW_GIT_BRANCH=${FLOW_GIT_BRANCH}
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app/src
 
-# Use root for setup
+# Run as root for setup
 USER root
 
 # Install system dependencies
 RUN dnf install -y git openssh-clients sudo && dnf clean all
 
-# Install supervisor via pip (RHEL8 does not have a DNF package for it)
+# Install supervisor via pip (not available via dnf)
 RUN pip install --no-cache-dir supervisor
 
-# Setup app directory
-WORKDIR /app
-RUN mkdir -p /app && chown -R prefect:prefect /app
+# Prepare directories
+RUN mkdir -p /app/src /var/log && chown -R prefect:prefect /app
 
 # Copy entrypoint and supervisor config
 COPY submitter-entrypoint.sh /submitter-entrypoint.sh
@@ -28,4 +27,5 @@ RUN chmod +x /submitter-entrypoint.sh && chown prefect:prefect /submitter-entryp
 # Switch to non-root user
 USER prefect
 
+# Entrypoint handles git clone and starts supervisor
 ENTRYPOINT ["/submitter-entrypoint.sh"]
