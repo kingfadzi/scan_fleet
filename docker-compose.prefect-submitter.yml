@@ -23,7 +23,6 @@ services:
         max-size: "10m"
         max-file: "5"
     volumes:
-      - ./checkpoints:/app/checkpoints
       - ${SSH_KEYS_PATH}:/tmp/keys/id_ed25519:ro,Z
       - ${SSH_KEYS_PUB_PATH}:/tmp/keys/id_ed25519.pub:ro,Z
       - ${SSH_KNOWN_HOSTS_PATH}:/tmp/keys/known_hosts:ro,Z
