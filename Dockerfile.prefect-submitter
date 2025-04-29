@@ -17,7 +17,7 @@ RUN dnf install -y git openssh-clients sudo && dnf clean all
 RUN pip install --no-cache-dir supervisor
 
 # Prepare directories
-RUN mkdir -p /app/src /var/log && chown -R prefect:prefect /app
+RUN mkdir -p /app/src /app/logs && chown -R prefect:prefect /app
 
 # Copy entrypoint and supervisor config
 COPY submitter-entrypoint.sh /submitter-entrypoint.sh

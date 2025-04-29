@@ -28,20 +28,24 @@ echo "[Entrypoint] Starting SSH key setup..."
     chown -R prefect:prefect /home/prefect/.ssh
 }
 
-# === Clone the Git repo into /app/src only if not already present ===
+# === Ensure logs directory exists ===
+mkdir -p /app/logs
+
+# === Clone logic: delete and reclone if /app/src already exists ===
 CLONE_DIR="/app/src"
 
-if [ ! -d "${CLONE_DIR}/.git" ]; then
-    echo "[Entrypoint] Cloning $FLOW_GIT_STORAGE on branch $FLOW_GIT_BRANCH into $CLONE_DIR..."
-    GIT_SSH_COMMAND="ssh -i /home/prefect/.ssh/id_ed25519 -o UserKnownHostsFile=/home/prefect/.ssh/known_hosts" \
-        git clone --branch "$FLOW_GIT_BRANCH" "$FLOW_GIT_STORAGE" "$CLONE_DIR"
-else
-    echo "[Entrypoint] Repo already exists at $CLONE_DIR, skipping clone."
+if [ -d "${CLONE_DIR}/.git" ]; then
+    echo "[Entrypoint] Removing existing repo at $CLONE_DIR..."
+    rm -rf "${CLONE_DIR}"
 fi
 
-# === Change to /app/src before supervisor ===
-cd /app/src
+echo "[Entrypoint] Cloning $FLOW_GIT_STORAGE on branch $FLOW_GIT_BRANCH..."
+GIT_SSH_COMMAND="ssh -i /home/prefect/.ssh/id_ed25519 -o UserKnownHostsFile=/home/prefect/.ssh/known_hosts" \
+    git clone --branch "$FLOW_GIT_BRANCH" "$FLOW_GIT_STORAGE" "$CLONE_DIR"
 
-# === Launch supervisor ===
+# === Change to repo directory ===
+cd "$CLONE_DIR"
+
+# === Start supervisor ===
 echo "[Entrypoint] Starting supervisord..."
 exec supervisord -c /etc/supervisord.conf
