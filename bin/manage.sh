@@ -198,12 +198,17 @@ start_workers() {
 
         for (( i=1; i<=instance_count; i++ )); do
             PROJECT_NAME="prefect-worker-${pool_name}-${i}"
+            echo "Building worker instance $i for pool '${pool_name}' (Project: $PROJECT_NAME)..."
+            env WORK_POOL="$pool_name" WORKER_NAME="$ENV_NAME" INSTANCE="$i" \
+                docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml build --no-cache
+
             echo "Starting worker instance $i for pool '${pool_name}' (Project: $PROJECT_NAME)..."
             env WORK_POOL="$pool_name" WORKER_NAME="$ENV_NAME" INSTANCE="$i" \
                 docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f docker-compose.prefect-worker.yml up -d
         done
     done
 }
+
 
 stop_workers() {
     if [ -z "$WORKER_POOLS" ]; then
