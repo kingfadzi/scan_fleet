@@ -15,6 +15,7 @@ services:
       BITBUCKET_API_TOKEN: ${BITBUCKET_API_TOKEN}
       FLOW_GIT_STORAGE: ${FLOW_GIT_STORAGE}
       FLOW_GIT_BRANCH: ${FLOW_GIT_BRANCH}
+      SUBMITTER_CHECKPOINT_DIR: /data/checkpoints
     container_name: submitters
     restart: always
     logging:
@@ -27,4 +28,4 @@ services:
       - ${SSH_KEYS_PUB_PATH}:/tmp/keys/id_ed25519.pub:ro,Z
       - ${SSH_KNOWN_HOSTS_PATH}:/tmp/keys/known_hosts:ro,Z
       - ${USER_HOME}/tls-ca-bundle.pem:/etc/ssl/certs/tls-ca-bundle.pem:ro,Z
-      - ${USER_HOME}/submitter-checkpoints:/app/src/checkpoints:rw,Z
+      - ${USER_HOME}/submitter-checkpoints:/data/checkpoints:rw,Z
