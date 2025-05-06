@@ -245,7 +245,13 @@ restart_workers() {
 }
 
 # Submitter control functions
+
 start_submitter() {
+    echo "Preparing checkpoint directory..."
+    CHECKPOINT_DIR="${USER_HOME}/submitter-checkpoints"
+    mkdir -p "$CHECKPOINT_DIR"
+    chown "${HOST_UID}:${HOST_GID}" "$CHECKPOINT_DIR"
+
     echo "Building Submitter image..."
     docker compose --env-file "$ENV_FILE" -f docker-compose.prefect-submitter.yml build --no-cache submitters
 
