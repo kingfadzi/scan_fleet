@@ -68,6 +68,7 @@ services:
       - ${M2_SETTINGS_PATH}:${CONTAINER_HOME}/.m2/settings.xml
       - ${M2_CACHE_PATH}:${CONTAINER_HOME}/.m2/repository
       - ${USER_HOME}/.kerberos_cache:/krb5cache:ro,Z
+      - ${BUILD_CONFIG_CACHE_PATH}:/data/build_cache
     networks:
       - scan_fleet_scannet
 
