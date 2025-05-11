@@ -53,6 +53,7 @@ services:
       PREFECT_LOGGING_PERSISTENCE: false
       WORKER_NAME: ${WORKER_NAME}
       KRB5CCNAME: /krb5cache/krb5cc
+      BUILD_CONFIG_CACHE_DIR: ${BUILD_CONFIG_CACHE_DIR}
 
     restart: always
     logging:
