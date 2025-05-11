@@ -53,7 +53,6 @@ services:
       PREFECT_LOGGING_PERSISTENCE: false
       WORKER_NAME: ${WORKER_NAME}
       KRB5CCNAME: /krb5cache/krb5cc
-      BUILD_CONFIG_CACHE_DIR: ${BUILD_CONFIG_CACHE_DIR}
 
     restart: always
     logging:
@@ -70,7 +69,7 @@ services:
       - ${M2_SETTINGS_PATH}:${CONTAINER_HOME}/.m2/settings.xml
       - ${M2_CACHE_PATH}:${CONTAINER_HOME}/.m2/repository
       - ${USER_HOME}/.kerberos_cache:/krb5cache:ro,Z
-      - ${BUILD_CONFIG_CACHE_DIR}:${CONTAINER_HOME}/build_config_cache
+      - ${BUILD_CONFIG_CACHE_DIR_HOST}:${CONTAINER_HOME}/build_config_cache
 
     networks:
       - scan_fleet_scannet
