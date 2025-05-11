@@ -1,5 +1,8 @@
 FROM scanfleet-base:latest
 
+# Create and chown the build config cache directory
+RUN mkdir -p /home/prefect/build_config_cache && chown -R prefect:prefect /home/prefect/build_config_cache
+
 USER prefect
 
 ENV FLOW_GIT_STORAGE=${FLOW_GIT_STORAGE}
