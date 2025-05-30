@@ -25,7 +25,7 @@ pyodbc==5.2.0
 aioodbc==0.5.0
 tenacity
 aiohttp
-pytest-asyncio
+pytest-asyncio==0.26.0
 scipy
 humanize==4.9.0
 tomli
