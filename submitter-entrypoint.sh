@@ -43,11 +43,12 @@ echo "[Entrypoint] Cloning $FLOW_GIT_STORAGE on branch $FLOW_GIT_BRANCH..."
 GIT_SSH_COMMAND="ssh -i /home/prefect/.ssh/id_ed25519 -o UserKnownHostsFile=/home/prefect/.ssh/known_hosts" \
     git clone --branch "$FLOW_GIT_BRANCH" "$FLOW_GIT_STORAGE" "$CLONE_DIR"
 
+
 # === Change to repo directory ===
 cd "$CLONE_DIR"
 
-echo "[Entrypoint] Starting crond (cron daemon)..."
-crond
+echo "[Entrypoint] Starting crond (cron daemon) as prefect..."
+crond -p /app/logs/crond.pid
 
 echo "[Entrypoint] Starting supervisord..."
 exec supervisord -c /etc/supervisord.conf
