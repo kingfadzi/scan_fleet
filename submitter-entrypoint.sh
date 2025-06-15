@@ -46,6 +46,8 @@ GIT_SSH_COMMAND="ssh -i /home/prefect/.ssh/id_ed25519 -o UserKnownHostsFile=/hom
 # === Change to repo directory ===
 cd "$CLONE_DIR"
 
-# === Start supervisor ===
+echo "[Entrypoint] Starting crond (cron daemon)..."
+crond
+
 echo "[Entrypoint] Starting supervisord..."
 exec supervisord -c /etc/supervisord.conf
