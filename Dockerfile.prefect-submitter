@@ -20,19 +20,17 @@ COPY submitter-entrypoint.sh /submitter-entrypoint.sh
 COPY supervisord.conf /etc/supervisord.conf
 RUN chmod +x /submitter-entrypoint.sh && chown prefect:prefect /submitter-entrypoint.sh
 
-# Copy only Bitbucket and GitLab fetcher scripts
+# Copy fetcher scripts
 COPY scripts/bitbucket-fetcher.sh /app/scripts/bitbucket-fetcher.sh
 COPY scripts/gitlab-fetcher.sh /app/scripts/gitlab-fetcher.sh
 
-# Copy crontab
+# Copy crontab (for user prefect)
 COPY crontab /etc/cron.d/app-cron
 
-# Set permissions
+# Set permissions (crond reads directly from /etc/cron.d, no crontab command needed)
 RUN chmod +x /app/scripts/*.sh \
 && chmod 0644 /etc/cron.d/app-cron \
 && chown -R prefect:prefect /app
-
-RUN crontab /etc/cron.d/app-cron
 
 USER prefect
 
