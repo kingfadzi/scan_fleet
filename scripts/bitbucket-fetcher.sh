@@ -1,13 +1,14 @@
 #!/bin/bash
 
 export PYTHONPATH=/app/src
+cd /app/src
 
 SCRIPT_NAME="bitbucket-fetcher.sh"
 LOCKFILE="/tmp/bitbucket-fetcher.lock"
 DATE=$(date +"%Y-%m-%d")
 LOGFILE="/app/logs/bitbucket-fetching-${DATE}.log"
 ERRFILE="/app/logs/bitbucket-fetching-${DATE}.err"
-PY_CMD="/usr/bin/python3 /app/src/flows/flow_runner.py config/flows/discovery/bitbucket.yaml"
+PY_CMD="/usr/bin/python3 flows/flow_runner.py config/flows/discovery/bitbucket.yaml"
 
 timestamp() { date +"%Y-%m-%d %H:%M:%S"; }
 log() { echo "[$(timestamp)] [$SCRIPT_NAME] $*"; }

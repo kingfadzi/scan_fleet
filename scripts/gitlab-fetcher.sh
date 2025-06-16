@@ -1,13 +1,14 @@
 #!/bin/bash
 
 export PYTHONPATH=/app/src
+cd /app/src
 
 SCRIPT_NAME="gitlab-fetcher.sh"
 LOCKFILE="/tmp/gitlab-fetcher.lock"
 DATE=$(date +"%Y-%m-%d")
 LOGFILE="/app/logs/gitlab-fetching-${DATE}.log"
 ERRFILE="/app/logs/gitlab-fetching-${DATE}.err"
-PY_CMD="/usr/bin/python3 /app/src/flows/flow_runner.py config/flows/discovery/gitlab.yaml"
+PY_CMD="/usr/bin/python3 flows/flow_runner.py config/flows/discovery/gitlab.yaml"
 
 timestamp() { date +"%Y-%m-%d %H:%M:%S"; }
 log() { echo "[$(timestamp)] [$SCRIPT_NAME] $*"; }
