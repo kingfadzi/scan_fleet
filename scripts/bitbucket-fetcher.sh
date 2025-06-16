@@ -1,5 +1,6 @@
 #!/bin/bash
 
+source /app/scripts/env.cron
 export PYTHONPATH=/app/src
 cd /app/src
 
