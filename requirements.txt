@@ -31,3 +31,4 @@ humanize==4.9.0
 tomli
 univers==30.12.1
 semver
+graphviz==0.20.3
