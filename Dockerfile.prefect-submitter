@@ -1,37 +1,25 @@
 FROM scanfleet-base:latest
 
-ARG FLOW_GIT_STORAGE
-ARG FLOW_GIT_BRANCH
+RUN dnf install -y git openssh-clients sudo cronie && dnf clean all
 
-ENV FLOW_GIT_STORAGE=${FLOW_GIT_STORAGE}
-ENV FLOW_GIT_BRANCH=${FLOW_GIT_BRANCH}
-ENV PYTHONPATH=/app/src
+RUN mkdir -p /home/prefect/.prefect /app/logs /app/scripts && \
+chown -R prefect:prefect /home/prefect /app && \
+chmod -R 777 /home/prefect/.prefect
 
-USER root
+WORKDIR /home/prefect
 
-RUN dnf install -y git openssh-clients sudo && dnf clean all
-RUN pip install --no-cache-dir supervisor
-RUN dnf install -y cronie && dnf clean all
+EXPOSE 4200
 
-RUN mkdir -p /app/src /app/logs /app/scripts && chown -R prefect:prefect /app
+COPY server-entrypoint.sh /usr/local/bin/server-entrypoint.sh
+RUN chmod 755 /usr/local/bin/server-entrypoint.sh
 
-# Entrypoint and Supervisor config
-COPY submitter-entrypoint.sh /submitter-entrypoint.sh
 COPY supervisord.conf /etc/supervisord.conf
-RUN chmod +x /submitter-entrypoint.sh && chown prefect:prefect /submitter-entrypoint.sh
 
-# Copy fetcher scripts
 COPY scripts/bitbucket-fetcher.sh /app/scripts/bitbucket-fetcher.sh
 COPY scripts/gitlab-fetcher.sh /app/scripts/gitlab-fetcher.sh
+RUN chmod +x /app/scripts/*.sh && chown -R prefect:prefect /app/scripts
 
-# Copy crontab (for user prefect)
 COPY crontab /etc/cron.d/app-cron
+RUN chmod 0644 /etc/cron.d/app-cron
 
-# Set permissions (crond reads directly from /etc/cron.d, no crontab command needed)
-RUN chmod +x /app/scripts/*.sh \
-&& chmod 0644 /etc/cron.d/app-cron \
-&& chown -R prefect:prefect /app
-
-USER prefect
-
-ENTRYPOINT ["/submitter-entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/server-entrypoint.sh"]
