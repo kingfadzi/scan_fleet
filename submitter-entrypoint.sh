@@ -3,7 +3,6 @@ set -e
 
 echo "[Entrypoint] Starting SSH key setup..."
 
-# === SSH Key Setup for prefect user ===
 [ -f /tmp/keys/id_ed25519 ] && {
     mkdir -p /home/prefect/.ssh
     cp /tmp/keys/id_ed25519 /home/prefect/.ssh/
@@ -28,10 +27,9 @@ echo "[Entrypoint] Starting SSH key setup..."
     chown -R prefect:prefect /home/prefect/.ssh
 }
 
-# === Ensure logs directory exists ===
+echo "[Entrypoint] Ensuring logs directory exists..."
 mkdir -p /app/logs
 
-# === Clone logic: delete and reclone if /app/src already exists ===
 CLONE_DIR="/app/src"
 
 if [ -d "${CLONE_DIR}/.git" ]; then
@@ -43,14 +41,13 @@ echo "[Entrypoint] Cloning $FLOW_GIT_STORAGE on branch $FLOW_GIT_BRANCH..."
 GIT_SSH_COMMAND="ssh -i /home/prefect/.ssh/id_ed25519 -o UserKnownHostsFile=/home/prefect/.ssh/known_hosts" \
     git clone --branch "$FLOW_GIT_BRANCH" "$FLOW_GIT_STORAGE" "$CLONE_DIR"
 
-# === Change to repo directory ===
 cd "$CLONE_DIR"
 
-echo "[Entrypoint] Capturing environment for cron..."
-printenv > /app/scripts/env.cron
+echo "[Entrypoint] Capturing environment for cron jobs..."
+printenv | sed 's/^/export /' > /app/scripts/env.cron
 
-echo "[Entrypoint] Starting crond (cron daemon)..."
+echo "[Entrypoint] Starting crond (cron daemon) as root..."
 crond
 
-echo "[Entrypoint] Switching to 'prefect' and starting supervisord..."
+echo "[Entrypoint] Switching to user 'prefect' and starting supervisord..."
 exec su -s /bin/bash prefect -c 'cd /app/src && exec supervisord -c /etc/supervisord.conf'
