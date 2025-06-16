@@ -46,7 +46,10 @@ GIT_SSH_COMMAND="ssh -i /home/prefect/.ssh/id_ed25519 -o UserKnownHostsFile=/hom
 # === Change to repo directory ===
 cd "$CLONE_DIR"
 
-echo "[Entrypoint] Starting crond (cron daemon) as root..."
+echo "[Entrypoint] Capturing environment for cron..."
+printenv > /app/scripts/env.cron
+
+echo "[Entrypoint] Starting crond (cron daemon)..."
 crond
 
 echo "[Entrypoint] Switching to 'prefect' and starting supervisord..."
