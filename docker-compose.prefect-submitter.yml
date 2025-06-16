@@ -16,7 +16,7 @@ services:
       FLOW_GIT_STORAGE: ${FLOW_GIT_STORAGE}
       FLOW_GIT_BRANCH: ${FLOW_GIT_BRANCH}
       SUBMITTER_CHECKPOINT_DIR: /data/checkpoints
-    container_name: submitters
+    container_name: submitter
     restart: always
     logging:
       driver: "json-file"
