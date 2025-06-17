@@ -1,2 +1,3 @@
 0 0 * * * prefect /app/scripts/bitbucket-fetcher.sh
 0 0 * * * prefect /app/scripts/gitlab-fetcher.sh
+
